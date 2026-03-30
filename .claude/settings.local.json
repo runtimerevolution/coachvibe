@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /Users/daniel/Development/code/coachvibe -type f -exec wc -l {} +)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx next:*)",
+      "Bash(npm run:*)",
+      "Bash(npm show:*)",
+      "Bash(ps -p 92972 -o command)",
+      "Bash(grep -E \"\\\\.\\(json|js|ts|tsx|md\\)$|package\")",
+      "Bash(ls -la /Users/daniel/Development/code/coachvibe/*.json /Users/daniel/Development/code/coachvibe/*.js /Users/daniel/Development/code/coachvibe/*.md)",
+      "Bash(find /Users/daniel/Development/code/coachvibe/vibe_code_files -type f ! -path '*/.claude/*' ! -path '*/.*' -exec ls -lh {})",
+      "Bash(find /Users/daniel/Development/code/coachvibe/vibe_code_files -type f ! -path '*/.claude/*' -printf '%f | %s bytes\\\\n')",
+      "Bash(psql --version)",
+      "Bash(psql -U postgres -c l)",
+      "Bash(psql -c l)",
+      "Bash(psql -c \"CREATE DATABASE coachvibe;\")",
+      "Bash(DATABASE_URL=\"postgresql://daniel@localhost:5432/coachvibe\" npx prisma migrate dev --name init 2>&1)",
+      "Bash(psql:*)",
+      "Bash(createdb coachvibe:*)",
+      "Bash(npx prisma:*)",
+      "Read(//usr/local/bin/**)",
+      "Bash(echo \"PATH: $PATH\")",
+      "Bash(export PATH=\"/Users/daniel/.nvm/versions/node/v25.8.2/bin:$PATH\")",
+      "Bash(DATABASE_URL=\"postgresql://daniel@localhost:5432/coachvibe\" npx prisma migrate deploy)",
+      "Bash(DATABASE_URL=\"postgresql://daniel@localhost:5432/coachvibe\" npx prisma generate)"
+    ]
+  }
+}

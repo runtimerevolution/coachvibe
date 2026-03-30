@@ -1,2 +1,0 @@
-# coachvibe
-coachvibe project

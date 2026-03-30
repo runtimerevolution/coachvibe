@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Coach {
+  id          String   @id @default(cuid())
+  name        String   @default("Coach")
+  email       String   @unique @default("demo@coachvibe.app")
+  bio         String?
+  imageUrl    String?
+  websiteUrl  String?
+  personality String?
+  credits     Int      @default(500)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products     Product[]
+  integrations Integration[]
+  workflows    WorkflowInstance[]
+  landingPages LandingPage[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  coachId     String
+  coach       Coach    @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  name        String
+  description String   @default("")
+  price       Float    @default(0)
+  type        String   @default("lead_magnet")
+  modules     String[]
+  embedScript String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  landingPage LandingPage?
+}
+
+model LandingPage {
+  id          String   @id @default(cuid())
+  productId   String   @unique
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  coachId     String
+  coach       Coach    @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  slug        String   @unique
+  data        Json
+  published   Boolean  @default(false)
+  generatedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Integration {
+  id           String   @id @default(cuid())
+  coachId      String
+  coach        Coach    @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  service      String
+  connected    Boolean  @default(false)
+  accessToken  String?
+  refreshToken String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([coachId, service])
+}
+
+model WorkflowInstance {
+  id         String   @id @default(cuid())
+  coachId    String
+  coach      Coach    @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  templateId String
+  active     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  runs WorkflowRun[]
+
+  @@unique([coachId, templateId])
+}
+
+model WorkflowRun {
+  id          String    @id @default(cuid())
+  workflowId  String
+  workflow    WorkflowInstance @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  status      String    @default("completed")
+  creditCost  Int       @default(0)
+  output      Json?
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+}
