@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { extractColorsDeep } from "@/lib/landing-page/color-extractor";
+
+export const dynamic = "force-dynamic";
 import { buildGenerationPrompt, parseGenerationResponse } from "@/lib/landing-page/prompt";
 import type { CoachProfile, GenerationInput, LandingPageColors, LandingPageData, ProductInfo } from "@/lib/landing-page/types";
 import prisma from "@/lib/db";
