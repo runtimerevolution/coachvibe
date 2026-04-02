@@ -13,7 +13,7 @@ const features = [
     color: PURPLE,
   },
   {
-    href: "/coachflow",
+    href: "/coachos",
     icon: "⚡",
     title: "CoachOS",
     desc: "Automate your coaching business. Connect Gmail, Zoom, Stripe, HubSpot and 6 more tools.",

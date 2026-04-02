@@ -1,4 +1,4 @@
-import CoachOS from "@/components/coachflow/CoachOS";
+import CoachOS from "@/components/coachos/CoachOS";
 
 export const metadata = { title: "CoachOS — CoachVibe" };
 
