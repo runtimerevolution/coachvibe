@@ -1,7 +1,7 @@
-import CoachFlow from "@/components/coachflow/CoachFlow";
+import CoachOS from "@/components/coachflow/CoachOS";
 
-export const metadata = { title: "Coachflow — CoachVibe" };
+export const metadata = { title: "CoachOS — CoachVibe" };
 
 export default function CoachflowPage() {
-  return <CoachFlow />;
+  return <CoachOS />;
 }

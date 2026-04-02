@@ -200,7 +200,7 @@ function WorkflowDetail({ workflow, onBack, connectedApps }: { workflow: any; on
   );
 }
 
-export default function CoachFlow() {
+export default function CoachOS() {
   const [onboarding, setOnboarding] = useState(true);
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [page, setPage] = useState("dashboard");
@@ -258,7 +258,7 @@ export default function CoachFlow() {
               <div style={{ width: 72, height: 72, borderRadius: 20, margin: "0 auto 24px", background: C.purple, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <span style={{ fontSize: 36 }}>⚡</span>
               </div>
-              <h1 style={{ margin: "0 0 8px", fontSize: 32, fontWeight: 800, color: C.darkGrey }}>Welcome to Coachflow</h1>
+              <h1 style={{ margin: "0 0 8px", fontSize: 32, fontWeight: 800, color: C.darkGrey }}>Welcome to CoachOS</h1>
               <p style={{ margin: "0 0 32px", fontSize: 15, color: C.grey, lineHeight: 1.6 }}>Your automation engine. Connect tools you already use and switch on workflows that save hours every week.</p>
               {[{ icon: "🎯", text: "Tell us your goals" }, { icon: "⏱️", text: "Set how much time you have" }, { icon: "🔌", text: "Connect your tools" }, { icon: "⚡", text: "Switch on automations" }].map((item, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 14, color: C.darkGrey, marginBottom: 10, maxWidth: 360, margin: "0 auto 12px" }}>
@@ -298,7 +298,7 @@ export default function CoachFlow() {
               <div style={{ fontSize: 64, fontWeight: 800, color: C.purple, fontFamily: "'Red Hat Display', sans-serif", marginBottom: 8 }}>{hoursPerWeek}h</div>
               <input type="range" min="1" max="20" value={hoursPerWeek} onChange={e => setHoursPerWeek(Number(e.target.value))} style={{ width: "100%", maxWidth: 400, accentColor: C.purple, height: 8 }} />
               <div style={{ marginTop: 24, background: C.lightPurple, borderRadius: 12, padding: "16px", fontSize: 13, color: C.darkGrey, lineHeight: 1.6 }}>
-                {hoursPerWeek <= 3 ? "Coachflow will focus on the highest-impact actions." : hoursPerWeek <= 8 ? "A solid amount. Coachflow will mix quick wins with deeper work." : "Power mode. High-value actions across all your goals."}
+                {hoursPerWeek <= 3 ? "CoachOS will focus on the highest-impact actions." : hoursPerWeek <= 8 ? "A solid amount. CoachOS will mix quick wins with deeper work." : "Power mode. High-value actions across all your goals."}
               </div>
             </div>
           )}
@@ -362,7 +362,7 @@ export default function CoachFlow() {
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
               <h2 style={{ margin: "0 0 8px", fontSize: 28, fontWeight: 800, color: C.darkGrey }}>You&apos;re all set</h2>
-              <p style={{ margin: "0 0 32px", fontSize: 15, color: C.grey, lineHeight: 1.6 }}>Coachflow is ready to start working for you.</p>
+              <p style={{ margin: "0 0 32px", fontSize: 15, color: C.grey, lineHeight: 1.6 }}>CoachOS is ready to start working for you.</p>
               <div style={{ display: "flex", gap: 16, justifyContent: "center", marginBottom: 32 }}>
                 {[{ n: selectedGoals.length, label: "goals set" }, { n: connectedApps.length, label: "tools connected" }, { n: activeWorkflows.length, label: "automations on" }].map((s, i) => (
                   <div key={i} style={{ background: C.lightPurple, borderRadius: 16, padding: "20px 28px", textAlign: "center" }}>
@@ -405,7 +405,7 @@ export default function CoachFlow() {
               <span style={{ fontSize: 20 }}>⚡</span>
             </div>
             <div>
-              <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: C.purple }}>Coachflow</h1>
+              <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: C.purple }}>CoachOS</h1>
               <div style={{ fontSize: 11, color: C.grey, fontWeight: 600 }}>by Coachvox</div>
             </div>
           </div>
@@ -437,7 +437,7 @@ export default function CoachFlow() {
           <div>
             <div style={{ marginBottom: 32 }}>
               <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: C.darkGrey }}>Good morning, coach 👋</h2>
-              <p style={{ margin: "6px 0 0", color: C.grey, fontSize: 15 }}>Here&apos;s what Coachflow has been doing for you.</p>
+              <p style={{ margin: "6px 0 0", color: C.grey, fontSize: 15 }}>Here&apos;s what CoachOS has been doing for you.</p>
             </div>
             <div style={{ display: "flex", gap: 16, marginBottom: 32, flexWrap: "wrap" }}>
               <StatCard icon="⚡" value={activeWorkflows.length} label="Active workflows" color={C.purple} sub={`of ${workflowTemplates.length} available`} />
@@ -575,7 +575,7 @@ export default function CoachFlow() {
           <div>
             <div style={{ marginBottom: 32 }}>
               <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: C.darkGrey }}>Second brain</h2>
-              <p style={{ margin: "6px 0 0", color: C.grey, fontSize: 15 }}>Everything Coachflow learns about your coaching, your clients, and your business.</p>
+              <p style={{ margin: "6px 0 0", color: C.grey, fontSize: 15 }}>Everything CoachOS learns about your coaching, your clients, and your business.</p>
             </div>
             <div style={{ background: C.white, borderRadius: 16, padding: "28px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #F0EDF5" }}>
               <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700, color: C.darkGrey }}>🧠 Recent sessions</h3>
