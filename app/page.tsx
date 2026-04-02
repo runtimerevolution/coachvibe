@@ -15,7 +15,7 @@ const features = [
   {
     href: "/coachflow",
     icon: "⚡",
-    title: "Coachflow",
+    title: "CoachOS",
     desc: "Automate your coaching business. Connect Gmail, Zoom, Stripe, HubSpot and 6 more tools.",
     color: "#41D5E2",
   },
