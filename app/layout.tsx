@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CoachVibe — Your AI Coaching Platform",
+  title: "CoachOs — Your AI Coaching Platform",
   description: "Voice-powered AI chat, workflow automation, and landing page builder for coaches.",
 };
 

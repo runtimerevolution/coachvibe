@@ -94,7 +94,7 @@ export default function ChatPage() {
           <div style={{ width: 1, height: 20, background: "#E0E0E0" }} />
           <div style={{ width: 36, height: 36, borderRadius: "50%", background: PURPLE, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🎙️</div>
           <div>
-            <div style={{ fontWeight: 700, color: "#1a1a2e", fontFamily: "'Red Hat Display', sans-serif" }}>CoachVibe AI</div>
+            <div style={{ fontWeight: 700, color: "#1a1a2e", fontFamily: "'Red Hat Display', sans-serif" }}>CoachOs AI</div>
             <div style={{ fontSize: 12, color: "#7A7A7A" }}>Your coaching assistant</div>
           </div>
         </div>

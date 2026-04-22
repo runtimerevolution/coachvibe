@@ -39,7 +39,7 @@ export default function Home() {
           </svg>
         </div>
         <h1 style={{ fontSize: "clamp(2rem, 5vw, 3rem)", fontWeight: 900, color: "#1a1a2e", marginBottom: 12, fontFamily: "'Red Hat Display', sans-serif", letterSpacing: "-0.02em" }}>
-          Coach<span style={{ color: PURPLE }}>Vibe</span>
+          Coach<span style={{ color: PURPLE }}>Os</span>
         </h1>
         <p style={{ fontSize: "1.1rem", color: "#7A7A7A", maxWidth: 480, margin: "0 auto", lineHeight: 1.6 }}>
           Your AI-powered coaching platform. Voice chat, workflow automation, and AI landing pages — all in one place.
