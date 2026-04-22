@@ -220,9 +220,9 @@ export default function CoachOS() {
   const toggleAction = (id: string) => setCompletedActions(p => p.includes(id) ? p.filter(a => a !== id) : [...p, id]);
   const totalPoints = completedActions.reduce((s, id) => s + (conciergeActions.find(a => a.id === id)?.points || 0), 0);
 
-  const onboardingSteps = ["welcome", "goals", "time", "connect", "workflows", "ready"];
+  const onboardingSteps = ["welcome", "goals", "connect", "workflows", "ready"];
   const currentStep = onboardingSteps[onboardingStep];
-  const canNext = currentStep === "welcome" || currentStep === "ready" || currentStep === "time" || (currentStep === "goals" && selectedGoals.length > 0) || (currentStep === "connect" && connectedApps.length > 0) || currentStep === "workflows";
+  const canNext = currentStep === "welcome" || currentStep === "ready" || (currentStep === "goals" && selectedGoals.length > 0) || (currentStep === "connect" && connectedApps.length > 0) || currentStep === "workflows";
 
   const finishOnboarding = () => {
     setOnboarding(false);
@@ -260,7 +260,7 @@ export default function CoachOS() {
               </div>
               <h1 style={{ margin: "0 0 8px", fontSize: 32, fontWeight: 800, color: C.darkGrey }}>Welcome to CoachOS</h1>
               <p style={{ margin: "0 0 32px", fontSize: 15, color: C.grey, lineHeight: 1.6 }}>Your automation engine. Connect tools you already use and switch on workflows that save hours every week.</p>
-              {[{ icon: "🎯", text: "Tell us your goals" }, { icon: "⏱️", text: "Set how much time you have" }, { icon: "🔌", text: "Connect your tools" }, { icon: "⚡", text: "Switch on automations" }].map((item, i) => (
+              {[{ icon: "🎯", text: "Tell us your goals" }, { icon: "🔌", text: "Connect your tools" }, { icon: "⚡", text: "Switch on automations" }].map((item, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 14, color: C.darkGrey, marginBottom: 10, maxWidth: 360, margin: "0 auto 12px" }}>
                   <span style={{ fontSize: 18 }}>{item.icon}</span><span>{item.text}</span>
                 </div>
@@ -288,17 +288,6 @@ export default function CoachOS() {
                     </div>
                   );
                 })}
-              </div>
-            </div>
-          )}
-
-          {currentStep === "time" && (
-            <div style={{ textAlign: "center" }}>
-              <h2 style={{ margin: "0 0 36px", fontSize: 24, fontWeight: 800, color: C.darkGrey }}>How much time can you give your business each week?</h2>
-              <div style={{ fontSize: 64, fontWeight: 800, color: C.purple, fontFamily: "'Red Hat Display', sans-serif", marginBottom: 8 }}>{hoursPerWeek}h</div>
-              <input type="range" min="1" max="20" value={hoursPerWeek} onChange={e => setHoursPerWeek(Number(e.target.value))} style={{ width: "100%", maxWidth: 400, accentColor: C.purple, height: 8 }} />
-              <div style={{ marginTop: 24, background: C.lightPurple, borderRadius: 12, padding: "16px", fontSize: 13, color: C.darkGrey, lineHeight: 1.6 }}>
-                {hoursPerWeek <= 3 ? "CoachOS will focus on the highest-impact actions." : hoursPerWeek <= 8 ? "A solid amount. CoachOS will mix quick wins with deeper work." : "Power mode. High-value actions across all your goals."}
               </div>
             </div>
           )}
