@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
             output: {
               simulatedAt: new Date().toISOString(),
               result: getSimulatedOutput(templateId),
-            },
+            } as object,
             startedAt: new Date(),
             completedAt: new Date(),
           },

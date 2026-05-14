@@ -7,6 +7,6 @@ export async function logActivity(
   metadata?: Record<string, unknown>
 ): Promise<void> {
   await prisma.activityLog.create({
-    data: { coachId, action, label, metadata },
+    data: { coachId, action, label, metadata: metadata as object | undefined },
   });
 }

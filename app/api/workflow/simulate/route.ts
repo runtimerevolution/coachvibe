@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
       creditCost,
       output: {
         simulatedAt: new Date().toISOString(),
-        result: getSimulatedOutput(templateId),
-      },
+        result: getSimulatedOutput(templateId) as Record<string, string | boolean | number | null>,
+      } as object,
       startedAt: new Date(),
       completedAt: new Date(),
     },
