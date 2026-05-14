@@ -1,50 +1,54 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/db";
+import { requireAuth } from "@/lib/session";
+import { ok, err, unauthorized, notFound } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/coach — returns the demo coach (first in DB, creating if needed)
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const coachId = requireAuth(req);
+  if (!coachId) return unauthorized();
+
   try {
-    let coach = await prisma.coach.findFirst();
-    if (!coach) {
-      coach = await prisma.coach.create({
-        data: {
-          name: "Demo Coach",
-          email: "demo@coachvibe.app",
-          bio: "I help ambitious coaches build thriving businesses without burning out. I've worked with 200+ coaches over the past 8 years.",
-          imageUrl: "https://api.dicebear.com/7.x/personas/svg?seed=coach",
-          personality: "warm, direct, and confident",
-          credits: 500,
-        },
-      });
-    }
-    return NextResponse.json({ success: true, coach });
+    const coach = await prisma.coach.findUnique({ where: { id: coachId } });
+    if (!coach) return notFound("Coach");
+    return ok({ coach });
   } catch (error) {
     console.error("Get coach failed:", error);
-    return NextResponse.json({ success: false, error: "Failed to get coach" }, { status: 500 });
+    return err("Failed to get coach", 500);
   }
 }
 
 export async function PATCH(req: NextRequest) {
+  const coachId = requireAuth(req);
+  if (!coachId) return unauthorized();
+
   try {
     const body = await req.json();
-    const coach = await prisma.coach.findFirst();
-    if (!coach) return NextResponse.json({ success: false, error: "No coach found" }, { status: 404 });
-
     const updated = await prisma.coach.update({
-      where: { id: coach.id },
+      where: { id: coachId },
       data: {
-        name: body.name ?? coach.name,
-        bio: body.bio ?? coach.bio,
-        imageUrl: body.imageUrl ?? coach.imageUrl,
-        websiteUrl: body.websiteUrl ?? coach.websiteUrl,
-        personality: body.personality ?? coach.personality,
+        ...(body.name !== undefined && { name: body.name }),
+        ...(body.bio !== undefined && { bio: body.bio }),
+        ...(body.imageUrl !== undefined && { imageUrl: body.imageUrl }),
+        ...(body.websiteUrl !== undefined && { websiteUrl: body.websiteUrl }),
+        ...(body.personality !== undefined && { personality: body.personality }),
+        ...(body.goals !== undefined && { goals: body.goals }),
+        ...(body.hoursPerWeek !== undefined && { hoursPerWeek: body.hoursPerWeek }),
       },
     });
-    return NextResponse.json({ success: true, coach: updated });
+    return ok({
+      coach: {
+        id: updated.id,
+        name: updated.name,
+        bio: updated.bio,
+        imageUrl: updated.imageUrl,
+        websiteUrl: updated.websiteUrl,
+        personality: updated.personality,
+      },
+    });
   } catch (error) {
     console.error("Update coach failed:", error);
-    return NextResponse.json({ success: false, error: "Update failed" }, { status: 500 });
+    return err("Update failed", 500);
   }
 }

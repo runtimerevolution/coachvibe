@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
+import prisma from "@/lib/db";
+import { requireAuth } from "@/lib/session";
+import { deductCredits } from "@/lib/credits";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +47,22 @@ export async function POST(req: NextRequest) {
     });
 
     const reply = completion.choices[0]?.message;
+
+    const coachId = requireAuth(req);
+    if (coachId) {
+      await deductCredits(coachId, 1, "chat.message");
+
+      const userMessage = messages[messages.length - 1];
+      if (userMessage) {
+        await prisma.chatMessage.createMany({
+          data: [
+            { coachId, role: userMessage.role, content: userMessage.content },
+            ...(reply ? [{ coachId, role: reply.role ?? "assistant", content: reply.content ?? "" }] : []),
+          ],
+        });
+      }
+    }
+
     return NextResponse.json(reply);
   } catch (err) {
     console.error("Chat route error:", err);

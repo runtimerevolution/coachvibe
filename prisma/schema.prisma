@@ -8,21 +8,30 @@ datasource db {
 }
 
 model Coach {
-  id          String   @id @default(cuid())
-  name        String   @default("Coach")
-  email       String   @unique @default("demo@coachvibe.app")
-  bio         String?
-  imageUrl    String?
-  websiteUrl  String?
-  personality String?
-  credits     Int      @default(500)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  name         String   @default("Coach")
+  email        String   @unique
+  password     String?
+  onboarded    Boolean  @default(false)
+  bio          String?
+  imageUrl     String?
+  websiteUrl   String?
+  personality  String?
+  goals        String[]
+  hoursPerWeek Int      @default(5)
+  credits      Int      @default(500)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  products     Product[]
-  integrations Integration[]
-  workflows    WorkflowInstance[]
-  landingPages LandingPage[]
+  products         Product[]
+  integrations     Integration[]
+  workflows        WorkflowInstance[]
+  landingPages     LandingPage[]
+  notifications    Notification[]
+  activityLogs     ActivityLog[]
+  chatMessages     ChatMessage[]
+  conciergeTasks   ConciergeTask[]
+  knowledgeEntries KnowledgeEntry[]
 }
 
 model Product {
@@ -69,13 +78,16 @@ model Integration {
 }
 
 model WorkflowInstance {
-  id         String   @id @default(cuid())
-  coachId    String
-  coach      Coach    @relation(fields: [coachId], references: [id], onDelete: Cascade)
-  templateId String
-  active     Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                String   @id @default(cuid())
+  coachId           String
+  coach             Coach    @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  templateId        String
+  active            Boolean  @default(false)
+  customName        String?
+  customDescription String?
+  customSteps       Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   runs WorkflowRun[]
 
@@ -83,12 +95,71 @@ model WorkflowInstance {
 }
 
 model WorkflowRun {
-  id          String    @id @default(cuid())
+  id          String           @id @default(cuid())
   workflowId  String
   workflow    WorkflowInstance @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  status      String    @default("completed")
-  creditCost  Int       @default(0)
+  status      String           @default("completed")
+  creditCost  Int              @default(0)
   output      Json?
-  startedAt   DateTime  @default(now())
+  startedAt   DateTime         @default(now())
   completedAt DateTime?
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  coachId   String
+  coach     Coach    @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  type      String   @default("info")
+  read      Boolean  @default(false)
+  dismissed Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  coachId   String
+  coach     Coach    @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  action    String
+  label     String
+  metadata  Json?
+  createdAt DateTime @default(now())
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  coachId   String
+  coach     Coach    @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  role      String
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model ConciergeTask {
+  id          String    @id @default(cuid())
+  coachId     String
+  coach       Coach     @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  status      String    @default("pending")
+  priority    String    @default("medium")
+  source      String    @default("manual")
+  dueDate     DateTime?
+  points      Int       @default(10)
+  timeMinutes Int       @default(15)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model KnowledgeEntry {
+  id        String   @id @default(cuid())
+  coachId   String
+  coach     Coach    @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  title     String
+  content   String
+  tags      String[]
+  source    String   @default("manual")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

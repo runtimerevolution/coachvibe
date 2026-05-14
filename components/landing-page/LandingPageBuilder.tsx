@@ -8,7 +8,6 @@ type BuilderState = 'input' | 'generating' | 'editing' | 'published';
 
 interface LandingPageBuilderProps {
   productId: string;
-  coachId: string;
   productName: string;
   publicUrl: string;
   existingData?: LandingPageData;
@@ -34,7 +33,7 @@ const btnPrimary: React.CSSProperties = {
 };
 
 export const LandingPageBuilder: React.FC<LandingPageBuilderProps> = ({
-  productId, coachId, productName, publicUrl, existingData, onSave, onPublish,
+  productId, productName, publicUrl, existingData, onSave, onPublish,
 }) => {
   const [state, setState] = useState<BuilderState>(existingData ? 'editing' : 'input');
   const [pageData, setPageData] = useState<LandingPageData | null>(existingData || null);
@@ -67,7 +66,7 @@ export const LandingPageBuilder: React.FC<LandingPageBuilderProps> = ({
     try {
       const res = await fetch('/api/landing-page/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-coach-id': coachId },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productId, targetAudience: targetAudience.trim(),
           websiteUrl: websiteUrl.trim() || undefined,
@@ -79,7 +78,7 @@ export const LandingPageBuilder: React.FC<LandingPageBuilderProps> = ({
       if (!data.success) { setError(data.error || 'Generation failed. Please try again.'); setState('input'); return; }
       setPageData(data.data); setState('editing');
     } catch { setError('Something went wrong. Please try again.'); setState('input'); }
-  }, [productId, coachId, websiteUrl, targetAudience, testimonialQuote, testimonialAttribution]);
+  }, [productId, websiteUrl, targetAudience, testimonialQuote, testimonialAttribution]);
 
   const handleSave = useCallback(async () => {
     if (!pageData || !onSave) return;

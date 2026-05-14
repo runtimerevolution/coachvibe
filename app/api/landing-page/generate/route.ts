@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { extractColorsDeep } from "@/lib/landing-page/color-extractor";
-
-export const dynamic = "force-dynamic";
 import { buildGenerationPrompt, parseGenerationResponse } from "@/lib/landing-page/prompt";
 import type { CoachProfile, GenerationInput, LandingPageColors, LandingPageData, ProductInfo } from "@/lib/landing-page/types";
 import prisma from "@/lib/db";
+import { requireAuth } from "@/lib/session";
+import { deductCredits } from "@/lib/credits";
+import { logActivity } from "@/lib/activity";
+import { createNotification } from "@/lib/notifications";
+
+export const dynamic = "force-dynamic";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// Fetch coach profile from DB
 async function getCoachProfile(coachId: string): Promise<CoachProfile> {
   const coach = await prisma.coach.findUnique({ where: { id: coachId } });
   if (!coach) throw new Error("Coach not found");
@@ -22,7 +25,6 @@ async function getCoachProfile(coachId: string): Promise<CoachProfile> {
   };
 }
 
-// Fetch product info from DB
 async function getProductInfo(productId: string): Promise<ProductInfo> {
   const product = await prisma.product.findUnique({ where: { id: productId } });
   if (!product) throw new Error("Product not found");
@@ -37,7 +39,6 @@ async function getProductInfo(productId: string): Promise<ProductInfo> {
   };
 }
 
-// Save landing page to DB
 async function saveLandingPage(data: LandingPageData): Promise<void> {
   await prisma.landingPage.upsert({
     where: { productId: data.productId },
@@ -52,17 +53,9 @@ async function saveLandingPage(data: LandingPageData): Promise<void> {
   });
 }
 
-// Deduct credits
-async function deductCredits(coachId: string): Promise<boolean> {
-  const coach = await prisma.coach.findUnique({ where: { id: coachId }, select: { credits: true } });
-  if (!coach || coach.credits < 1) return false;
-  await prisma.coach.update({ where: { id: coachId }, data: { credits: { decrement: 1 } } });
-  return true;
-}
-
 export async function POST(req: NextRequest) {
   try {
-    const coachId = req.headers.get("x-coach-id");
+    const coachId = requireAuth(req);
     if (!coachId) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
@@ -78,7 +71,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "OpenAI API key not configured" }, { status: 500 });
     }
 
-    const hasCredits = await deductCredits(coachId);
+    const hasCredits = await deductCredits(coachId, 10, "landing_page.generated");
     if (!hasCredits) {
       return NextResponse.json({ success: false, error: "Insufficient credits" }, { status: 402 });
     }
@@ -128,6 +121,8 @@ export async function POST(req: NextRequest) {
     };
 
     await saveLandingPage(landingPageData);
+
+    await logActivity(coachId, "landing_page.generated", `Landing page generated for ${product.name}`, { productId, slug });
 
     return NextResponse.json({ success: true, data: landingPageData });
   } catch (error) {

@@ -24,7 +24,13 @@
       "Bash(echo \"PATH: $PATH\")",
       "Bash(export PATH=\"/Users/daniel/.nvm/versions/node/v25.8.2/bin:$PATH\")",
       "Bash(DATABASE_URL=\"postgresql://daniel@localhost:5432/coachvibe\" npx prisma migrate deploy)",
-      "Bash(DATABASE_URL=\"postgresql://daniel@localhost:5432/coachvibe\" npx prisma generate)"
+      "Bash(DATABASE_URL=\"postgresql://daniel@localhost:5432/coachvibe\" npx prisma generate)",
+      "Bash(npm test:*)",
+      "Bash(node:*)",
+      "Bash(ls:*)",
+      "Bash(DATABASE_URL=\"postgresql://daniel@localhost:5432/coachvibe\" npx prisma:*)",
+      "Bash(DATABASE_URL=\"postgresql://daniel@localhost:5432/coachvibe\" psql:*)",
+      "Bash(pkill -f \"next dev\")"
     ]
   }
 }

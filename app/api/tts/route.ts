@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/session";
+import { deductCredits } from "@/lib/credits";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +14,14 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.ELEVENLABS_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: "ElevenLabs API key not configured" }, { status: 500 });
+    }
+
+    const coachId = requireAuth(req);
+    if (coachId) {
+      const ok = await deductCredits(coachId, 2, "tts");
+      if (!ok) {
+        return NextResponse.json({ error: "Insufficient credits" }, { status: 402 });
+      }
     }
 
     const res = await fetch(
@@ -31,8 +41,8 @@ export async function POST(req: NextRequest) {
     );
 
     if (!res.ok) {
-      const err = await res.text();
-      console.error("ElevenLabs error:", err);
+      const errText = await res.text();
+      console.error("ElevenLabs error:", errText);
       return NextResponse.json({ error: "TTS generation failed" }, { status: 502 });
     }
 

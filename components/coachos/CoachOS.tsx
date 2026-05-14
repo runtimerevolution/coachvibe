@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { workflowTemplates } from "@/lib/workflow-templates";
+import { timeAgo } from "@/lib/time";
 
 const C = {
   purple: "#6626e9", orange: "#FFAD0D", teal: "#41D5E2", pink: "#E55CFF",
@@ -21,50 +24,19 @@ const connectorsList = [
   { id: "hubspot", name: "HubSpot CRM", icon: "🎯", desc: "Contacts management", color: "#FF7A59", security: "Auto" },
 ];
 
-const workflowTemplates = [
-  { id: "client-onboarding", name: "Client onboarding", icon: "🚀", color: C.purple, desc: "Trigger on new payment, sends welcome email draft, intake form, schedules kickoff", connectors: ["stripe", "gmail", "google-calendar", "hubspot"], timeSaved: "2.5 hrs", creditCost: 5, steps: [{ label: "New client payment received", type: "trigger", connector: "stripe", security: null }, { label: "Send welcome email draft", type: "action", connector: "gmail", security: "Draft only" }, { label: "Send intake form", type: "action", connector: "gmail", security: "Draft only" }, { label: "Wait for form completion", type: "wait", connector: null, security: null }, { label: "Schedule kickoff call", type: "action", connector: "google-calendar", security: "Auto" }, { label: "Add to CRM", type: "action", connector: "hubspot", security: "Auto" }, { label: "Notify you when complete", type: "notify", connector: null, security: null }] },
-  { id: "post-session-intelligence", name: "Post-session intelligence", icon: "🧠", color: C.teal, desc: "Connect Fathom/Zoom, auto-generates session notes, drafts follow-up email, tracks themes", connectors: ["fathom", "zoom", "gmail"], timeSaved: "1 hr", creditCost: 8, steps: [{ label: "Session recording available", type: "trigger", connector: "zoom", security: "Read only" }, { label: "Get transcript from Fathom", type: "action", connector: "fathom", security: "Read only" }, { label: "AI generates session notes", type: "action", connector: null, security: null }, { label: "Extract key themes & action items", type: "action", connector: null, security: null }, { label: "Draft follow-up email", type: "action", connector: "gmail", security: "Draft only" }, { label: "Save to client record", type: "action", connector: "hubspot", security: "Auto" }, { label: "Notify you with summary", type: "notify", connector: null, security: null }] },
-  { id: "pre-session-brief", name: "Pre-session brief", icon: "📋", color: C.orange, desc: "Before each session, generates brief with last session summary, action items, focus areas", connectors: ["google-calendar", "hubspot", "fathom"], timeSaved: "45 min", creditCost: 3, steps: [{ label: "Session scheduled in calendar", type: "trigger", connector: "google-calendar", security: "Auto" }, { label: "Retrieve last session details", type: "action", connector: "hubspot", security: "Auto" }, { label: "Get previous action items", type: "action", connector: "fathom", security: "Read only" }, { label: "AI generates brief", type: "action", connector: null, security: null }, { label: "Suggest focus areas", type: "action", connector: null, security: null }, { label: "Send brief to your email", type: "action", connector: "gmail", security: "Draft only" }] },
-  { id: "weekly-outreach", name: "Weekly outreach", icon: "💌", color: C.pink, desc: "Find 10 relevant contacts, draft personalised outreach messages (email drafts only)", connectors: ["hubspot", "gmail"], timeSaved: "3 hrs", creditCost: 6, steps: [{ label: "Weekly schedule trigger", type: "trigger", connector: null, security: null }, { label: "Find 10 relevant contacts", type: "action", connector: "hubspot", security: "Auto" }, { label: "AI drafts personalised messages", type: "action", connector: null, security: null }, { label: "Save drafts for your review", type: "action", connector: "gmail", security: "Draft only" }, { label: "Notify you of drafts", type: "notify", connector: null, security: null }] },
-  { id: "newsletter-draft", name: "Newsletter draft", icon: "📰", color: "#9333EA", desc: "Pull trending topics from conversations, draft newsletter in coach's voice (draft only)", connectors: ["gmail", "mailchimp"], timeSaved: "2 hrs", creditCost: 4, steps: [{ label: "Weekly timer trigger", type: "trigger", connector: null, security: null }, { label: "Analyze conversation themes", type: "action", connector: null, security: null }, { label: "AI drafts newsletter content", type: "action", connector: null, security: null }, { label: "Save draft for your review", type: "action", connector: "gmail", security: "Draft only" }] },
-  { id: "ai-conversation-followup", name: "AI conversation follow-up", icon: "💬", color: "#6626e9", desc: "When someone chats with your AI, add them to your CRM and draft a 3-email follow-up sequence", connectors: ["hubspot", "gmail"], timeSaved: "4 hrs", creditCost: 4, steps: [{ label: "New conversation on your AI", type: "trigger", connector: null, security: null }, { label: "Add contact to CRM", type: "action", connector: "hubspot", security: "Auto" }, { label: "Draft follow-up sequence", type: "action", connector: "gmail", security: "Draft only" }, { label: "Notify you of new contact", type: "notify", connector: null, security: null }] },
-  { id: "social-media-scheduling", name: "Social media scheduling", icon: "📱", color: "#1DA1F2", desc: "Create and schedule posts to LinkedIn/Instagram", connectors: ["linkedin", "instagram"], timeSaved: "5 hrs", creditCost: 7, steps: [{ label: "Weekly content calendar trigger", type: "trigger", connector: null, security: null }, { label: "AI generates post ideas", type: "action", connector: null, security: null }, { label: "Create LinkedIn post", type: "action", connector: "linkedin", security: "Auto-publish" }, { label: "Create Instagram post", type: "action", connector: "instagram", security: "Auto-publish" }, { label: "Track engagement metrics", type: "notify", connector: null, security: null }] },
-  { id: "invoice-automation", name: "Invoice & payment automation", icon: "💷", color: "#13B5EA", desc: "Auto-generates invoices via Stripe/Xero, sends payment reminders", connectors: ["stripe", "xero", "gmail"], timeSaved: "3.5 hrs", creditCost: 4, steps: [{ label: "Session/package completed", type: "trigger", connector: "google-calendar", security: "Auto" }, { label: "Auto-generate invoice in Xero", type: "action", connector: "xero", security: "Auto-send" }, { label: "Send invoice to client", type: "action", connector: "gmail", security: "Auto-send" }, { label: "If unpaid after 7 days: remind", type: "condition", connector: "gmail", security: "Auto-send" }, { label: "Mark as paid in accounting", type: "action", connector: "xero", security: "Auto-send" }] },
-];
-
-const recentActivity = [
-  { text: "Client onboarding completed for Sarah Mitchell", time: "12 min ago", type: "success", workflow: "client-onboarding" },
-  { text: "Session notes generated from Zoom recording", time: "34 min ago", type: "action", workflow: "post-session-intelligence" },
-  { text: "Pre-session brief sent for tomorrow's call", time: "1 hr ago", type: "alert", workflow: "pre-session-brief" },
-  { text: "5 warm leads detected from conversations", time: "2 hrs ago", type: "action", workflow: "ai-conversation-followup" },
-  { text: "Invoice #1047 paid by Lisa Park", time: "3 hrs ago", type: "success", workflow: "invoice-automation" },
-  { text: "Weekly outreach emails drafted for review", time: "4 hrs ago", type: "action", workflow: "weekly-outreach" },
-];
-
-const notificationsData = [
-  { id: 1, title: "Client onboarding complete", desc: "Sarah Mitchell completed intake and booked kickoff call.", time: "12 min ago", read: false },
-  { id: 2, title: "Session notes ready", desc: "Post-session intelligence generated notes from your Zoom call with James.", time: "34 min ago", read: false },
-  { id: 3, title: "5 warm leads flagged", desc: "Buying signals detected in recent conversations. Follow-up messages drafted.", time: "2 hrs ago", read: true },
-  { id: 4, title: "Invoice paid", desc: "Lisa Park paid invoice #1047 for £2,400. Auto-marked as paid in Xero.", time: "3 hrs ago", read: true },
-  { id: 5, title: "Weekly outreach ready", desc: "10 personalised outreach emails drafted. Review and send at your convenience.", time: "4 hrs ago", read: false },
-];
-
-const goalsList = [
-  { id: "brand", label: "Build my personal brand", desc: "Grow your audience, increase visibility", icon: "✨" },
-  { id: "clients", label: "Win more clients", desc: "Fill your pipeline, convert more leads", icon: "🎯" },
-  { id: "impact", label: "Make more impact", desc: "Reach more people, create better content", icon: "💡" },
-  { id: "scale", label: "Scale beyond my time", desc: "Build systems, create leverage", icon: "🚀" },
-];
-
-const conciergeActions = [
-  { id: "a1", task: "Write a LinkedIn post about your pricing framework", points: 15, timeMin: 10, type: "content" },
-  { id: "a2", task: "Review and send 3 outreach emails to warm leads", points: 25, timeMin: 15, type: "outreach" },
-  { id: "a3", task: "Reply to 5 comments on your latest LinkedIn post", points: 10, timeMin: 8, type: "engagement" },
-  { id: "a4", task: "Draft a newsletter from this week's sessions", points: 20, timeMin: 12, type: "content" },
-  { id: "a5", task: "Send follow-up to Sarah Chen about her pricing experiment", points: 15, timeMin: 5, type: "outreach" },
-  { id: "a6", task: "Set up the AI conversation follow-up workflow", points: 30, timeMin: 5, type: "automation" },
-  { id: "a7", task: "Pitch yourself to 2 podcasts in your niche", points: 25, timeMin: 20, type: "outreach" },
-];
+interface DashboardData {
+  coach: { id: string; name: string; credits: number };
+  stats: { activeWorkflows: number; connectedIntegrations: number; creditsRemaining: number; unreadNotifications: number };
+  workflows: Array<{ id: string; templateId: string; active: boolean; runs: WorkflowRun[] }>;
+  integrations: Array<{ service: string; connected: boolean }>;
+  recentActivity: ActivityLogItem[];
+  notifications: NotificationItem[];
+}
+interface WorkflowRun { id: string; status: string; creditCost: number; startedAt: string; completedAt: string | null; }
+interface ActivityLogItem { id: string; action: string; label: string; metadata?: Record<string, unknown>; createdAt: string; }
+interface NotificationItem { id: string; title: string; body: string; type: string; read: boolean; dismissed: boolean; createdAt: string; }
+interface ConciergeTask { id: string; title: string; description?: string | null; status: string; priority: string; source: string; points: number; timeMinutes: number; createdAt: string; }
+interface KnowledgeEntry { id: string; title: string; content: string; tags: string[]; source: string; createdAt: string; }
 
 function Badge({ color, children, icon }: { color: string; children: React.ReactNode; icon?: string }) {
   return (
@@ -200,37 +172,261 @@ function WorkflowDetail({ workflow, onBack, connectedApps }: { workflow: any; on
   );
 }
 
+const PATH_TO_TAB: Record<string, string> = {
+  "/dashboard": "dashboard",
+  "/connectors": "connectors",
+  "/workflows": "workflows",
+  "/second-brain": "second-brain",
+  "/concierge": "concierge",
+  "/notifications": "notifications",
+};
+
 export default function CoachOS() {
-  const [onboarding, setOnboarding] = useState(true);
-  const [onboardingStep, setOnboardingStep] = useState(0);
-  const [page, setPage] = useState("dashboard");
+  const router = useRouter();
+  const pathname = usePathname();
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const page = PATH_TO_TAB[pathname] ?? "dashboard";
+  const setPage = (tab: string) => {
+    const path = tab === "dashboard" ? "/dashboard" : `/${tab}`;
+    router.push(path);
+  };
+
   const [connectedApps, setConnectedApps] = useState<string[]>([]);
   const [activeWorkflows, setActiveWorkflows] = useState<string[]>([]);
   const [viewingWorkflow, setViewingWorkflow] = useState<string | null>(null);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
-  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
+  type CustomStep = { label: string; type: "trigger" | "action" | "wait" | "condition" | "notify" };
+  type CustomWorkflow = { id: string; customName: string; customDescription: string | null; active: boolean; customSteps: CustomStep[] };
+  const [customWorkflows, setCustomWorkflows] = useState<CustomWorkflow[]>([]);
+  const [showCreateWorkflow, setShowCreateWorkflow] = useState(false);
+  const [newWorkflowName, setNewWorkflowName] = useState("");
+  const [newWorkflowDesc, setNewWorkflowDesc] = useState("");
+  const [newWorkflowSteps, setNewWorkflowSteps] = useState<CustomStep[]>([]);
+  const [creatingWorkflow, setCreatingWorkflow] = useState(false);
   const [hoursPerWeek, setHoursPerWeek] = useState(5);
-  const [completedActions, setCompletedActions] = useState<string[]>([]);
-  const creditsUsed = 347; const creditsTotal = 500;
-  const unreadCount = notificationsData.filter(n => !n.read).length;
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
-  const toggleConnector = (id: string) => setConnectedApps(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
-  const toggleWorkflow = (id: string) => setActiveWorkflows(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
-  const toggleGoal = (id: string) => setSelectedGoals(p => p.includes(id) ? p.filter(g => g !== id) : [...p, id]);
-  const toggleAction = (id: string) => setCompletedActions(p => p.includes(id) ? p.filter(a => a !== id) : [...p, id]);
-  const totalPoints = completedActions.reduce((s, id) => s + (conciergeActions.find(a => a.id === id)?.points || 0), 0);
+  // Concierge state
+  const [tasks, setTasks] = useState<ConciergeTask[]>([]);
+  const [tasksLoaded, setTasksLoaded] = useState(false);
+  const [generatingTasks, setGeneratingTasks] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [addingTask, setAddingTask] = useState(false);
 
-  const onboardingSteps = ["welcome", "goals", "connect", "workflows", "ready"];
-  const currentStep = onboardingSteps[onboardingStep];
-  const canNext = currentStep === "welcome" || currentStep === "ready" || (currentStep === "goals" && selectedGoals.length > 0) || (currentStep === "connect" && connectedApps.length > 0) || currentStep === "workflows";
+  // Second brain state
+  const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
+  const [entriesLoaded, setEntriesLoaded] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
+  const [newEntryTitle, setNewEntryTitle] = useState("");
+  const [newEntryContent, setNewEntryContent] = useState("");
+  const [newEntryTags, setNewEntryTags] = useState("");
+  const [addingEntry, setAddingEntry] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [generatingEntry, setGeneratingEntry] = useState(false);
 
-  const finishOnboarding = () => {
-    setOnboarding(false);
-    if (activeWorkflows.length === 0) {
-      const available = workflowTemplates.filter(w => w.connectors.every(c => connectedApps.includes(c)));
-      if (available.length > 0) setActiveWorkflows([available[0].id]);
+  useEffect(() => {
+    fetch("/api/dashboard")
+      .then(r => r.json())
+      .then(({ data }) => {
+        setDashboardData(data);
+        setConnectedApps(data.integrations.filter((i: { connected: boolean }) => i.connected).map((i: { service: string }) => i.service));
+        setActiveWorkflows(data.workflows.filter((w: { active: boolean; templateId: string }) => w.active && !w.templateId.startsWith("custom-")).map((w: { templateId: string }) => w.templateId));
+        setCustomWorkflows(data.workflows.filter((w: { templateId: string }) => w.templateId.startsWith("custom-")).map((w: { id: string; customName: string; customDescription: string | null; active: boolean; customSteps?: unknown[] }) => ({ id: w.id, customName: w.customName, customDescription: w.customDescription, active: w.active, customSteps: (w.customSteps ?? []) as { label: string; type: "trigger" | "action" | "wait" | "condition" | "notify" }[] })));
+        setNotifications(data.notifications);
+        setHoursPerWeek(data.coach?.hoursPerWeek ?? 5);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  // Lazy-load concierge tasks
+  useEffect(() => {
+    if (page === "concierge" && !tasksLoaded) {
+      fetch("/api/concierge")
+        .then(r => r.json())
+        .then(({ data }) => {
+          setTasks(data?.tasks ?? []);
+          setTasksLoaded(true);
+        })
+        .catch(() => setTasksLoaded(true));
+    }
+  }, [page, tasksLoaded]);
+
+  // Lazy-load knowledge entries
+  useEffect(() => {
+    if (page === "second-brain" && !entriesLoaded) {
+      fetch("/api/knowledge")
+        .then(r => r.json())
+        .then(({ data }) => {
+          setEntries(data?.entries ?? []);
+          setEntriesLoaded(true);
+        })
+        .catch(() => setEntriesLoaded(true));
+    }
+  }, [page, entriesLoaded]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const toggleConnector = async (id: string) => {
+    const isConnected = connectedApps.includes(id);
+    const newConnected = !isConnected;
+    setConnectedApps(p => newConnected ? [...p, id] : p.filter(x => x !== id));
+    try {
+      await fetch("/api/integration/toggle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ service: id, connected: newConnected }),
+      });
+    } catch {
+      setConnectedApps(p => isConnected ? [...p, id] : p.filter(x => x !== id));
     }
   };
+
+  const toggleWorkflow = async (id: string) => {
+    const isActive = activeWorkflows.includes(id);
+    const newActive = !isActive;
+    setActiveWorkflows(p => newActive ? [...p, id] : p.filter(x => x !== id));
+    try {
+      await fetch("/api/workflow/toggle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateId: id, active: newActive }),
+      });
+    } catch {
+      setActiveWorkflows(p => isActive ? [...p, id] : p.filter(x => x !== id));
+    }
+  };
+
+  const markNotificationRead = async (id: string) => {
+    setNotifications(p => p.map(n => n.id === id ? { ...n, read: true } : n));
+    try {
+      await fetch(`/api/notifications/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ read: true }),
+      });
+    } catch {
+      // optimistic update stays
+    }
+  };
+
+  const dismissNotification = async (id: string) => {
+    setNotifications(p => p.filter(n => n.id !== id));
+    try {
+      await fetch(`/api/notifications/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dismissed: true }),
+      });
+    } catch {
+      // optimistic update stays
+    }
+  };
+
+  const toggleTask = async (task: ConciergeTask) => {
+    const newStatus = task.status === "done" ? "pending" : "done";
+    setTasks(p => p.map(t => t.id === task.id ? { ...t, status: newStatus } : t));
+    try {
+      await fetch(`/api/concierge/${task.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+    } catch {
+      setTasks(p => p.map(t => t.id === task.id ? { ...t, status: task.status } : t));
+    }
+  };
+
+  const generateTasks = async () => {
+    setGeneratingTasks(true);
+    try {
+      const res = await fetch("/api/concierge/generate", { method: "POST" });
+      const { data } = await res.json();
+      if (data?.tasks) setTasks(p => [...p, ...data.tasks]);
+    } finally {
+      setGeneratingTasks(false);
+    }
+  };
+
+  const addTask = async () => {
+    if (!newTaskTitle.trim()) return;
+    setAddingTask(true);
+    try {
+      const res = await fetch("/api/concierge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTaskTitle }),
+      });
+      const { data } = await res.json();
+      if (data?.task) setTasks(p => [...p, data.task]);
+      setNewTaskTitle("");
+    } finally {
+      setAddingTask(false);
+    }
+  };
+
+  const deleteEntry = async (id: string) => {
+    setEntries(p => p.filter(e => e.id !== id));
+    try {
+      await fetch(`/api/knowledge/${id}`, { method: "DELETE" });
+    } catch {
+      // optimistic update stays
+    }
+  };
+
+  const addEntry = async () => {
+    if (!newEntryTitle.trim() || !newEntryContent.trim()) return;
+    setAddingEntry(true);
+    try {
+      const tags = newEntryTags.split(",").map(t => t.trim()).filter(Boolean);
+      const res = await fetch("/api/knowledge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newEntryTitle, content: newEntryContent, tags }),
+      });
+      const { data } = await res.json();
+      if (data?.entry) setEntries(p => [data.entry, ...p]);
+      setNewEntryTitle("");
+      setNewEntryContent("");
+      setNewEntryTags("");
+    } finally {
+      setAddingEntry(false);
+    }
+  };
+
+  const generateEntry = async () => {
+    if (!aiPrompt.trim()) return;
+    setGeneratingEntry(true);
+    try {
+      const res = await fetch("/api/knowledge/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: aiPrompt }),
+      });
+      const { data } = await res.json();
+      if (data?.entry) setEntries(p => [data.entry, ...p]);
+      setAiPrompt("");
+    } finally {
+      setGeneratingEntry(false);
+    }
+  };
+
+  const totalPoints = tasks.filter(t => t.status === "done").reduce((s, t) => s + t.points, 0);
+
+  const creditsRemaining = dashboardData?.stats.creditsRemaining ?? 0;
+  const creditsTotal = 500;
+  const creditsUsed = creditsTotal - creditsRemaining;
+
+  const filteredEntries = searchQuery
+    ? entries.filter(e =>
+        e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    : entries;
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: "📊" },
@@ -241,142 +437,14 @@ export default function CoachOS() {
     { id: "notifications", label: "Notifications", icon: "🔔", badge: unreadCount },
   ];
 
-  if (onboarding) {
+  if (loading) {
     return (
-      <div style={{ minHeight: "100vh", background: C.lightBg, display: "flex", flexDirection: "column", alignItems: "center", overflow: "auto", padding: "40px 20px" }}>
-        <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}} .fade-in{animation:fadeIn 0.4s ease-out forwards}`}</style>
-        <div style={{ width: "100%", maxWidth: 640, marginBottom: 24 }}>
-          <div style={{ display: "flex", gap: 6 }}>
-            {onboardingSteps.map((_, i) => <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= onboardingStep ? C.purple : "#E0E0E0", transition: "background 0.3s" }} />)}
-          </div>
-          <div style={{ textAlign: "center", marginTop: 12, fontSize: 12, color: C.grey }}>Step {onboardingStep + 1} of {onboardingSteps.length}</div>
+      <div style={{ minHeight: "100vh", background: C.lightBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ width: 48, height: 48, border: `4px solid ${C.purple}20`, borderTop: `4px solid ${C.purple}`, borderRadius: "50%", margin: "0 auto 16px", animation: "spin 0.8s linear infinite" }} />
+          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+          <div style={{ fontSize: 14, color: C.grey }}>Loading your dashboard…</div>
         </div>
-
-        <div className="fade-in" key={currentStep} style={{ background: C.white, borderRadius: 24, padding: "40px", width: "100%", maxWidth: 640, boxShadow: "0 4px 24px rgba(0,0,0,0.06)", border: "1px solid #F0EDF5" }}>
-          {currentStep === "welcome" && (
-            <div style={{ textAlign: "center" }}>
-              <div style={{ width: 72, height: 72, borderRadius: 20, margin: "0 auto 24px", background: C.purple, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ fontSize: 36 }}>⚡</span>
-              </div>
-              <h1 style={{ margin: "0 0 8px", fontSize: 32, fontWeight: 800, color: C.darkGrey }}>Welcome to CoachOS</h1>
-              <p style={{ margin: "0 0 32px", fontSize: 15, color: C.grey, lineHeight: 1.6 }}>Your automation engine. Connect tools you already use and switch on workflows that save hours every week.</p>
-              {[{ icon: "🎯", text: "Tell us your goals" }, { icon: "🔌", text: "Connect your tools" }, { icon: "⚡", text: "Switch on automations" }].map((item, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 14, color: C.darkGrey, marginBottom: 10, maxWidth: 360, margin: "0 auto 12px" }}>
-                  <span style={{ fontSize: 18 }}>{item.icon}</span><span>{item.text}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {currentStep === "goals" && (
-            <div>
-              <h2 style={{ margin: "0 0 6px", fontSize: 24, fontWeight: 800, color: C.darkGrey, textAlign: "center" }}>What are you working towards?</h2>
-              <p style={{ margin: "0 0 28px", fontSize: 14, color: C.grey, textAlign: "center" }}>Select all that apply.</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {goalsList.map(goal => {
-                  const sel = selectedGoals.includes(goal.id);
-                  return (
-                    <div key={goal.id} onClick={() => toggleGoal(goal.id)} style={{ background: C.lightBg, borderRadius: 16, padding: "18px 22px", border: `2px solid ${sel ? C.purple : "transparent"}`, cursor: "pointer", display: "flex", alignItems: "center", gap: 14 }}>
-                      <div style={{ width: 40, height: 40, borderRadius: 12, background: sel ? C.purple + "15" : "#F0EDF5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{goal.icon}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: sel ? C.purple : C.darkGrey }}>{goal.label}</div>
-                        <div style={{ fontSize: 13, color: C.grey, marginTop: 2 }}>{goal.desc}</div>
-                      </div>
-                      <div style={{ width: 26, height: 26, borderRadius: 8, background: sel ? C.purple : "#E0E0E0", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        {sel && <span style={{ color: C.white, fontSize: 13, fontWeight: 700 }}>✓</span>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {currentStep === "connect" && (
-            <div>
-              <h2 style={{ margin: "0 0 28px", fontSize: 24, fontWeight: 800, color: C.darkGrey, textAlign: "center" }}>Connect your tools</h2>
-              <div style={{ background: C.purple, borderRadius: 12, padding: "12px 16px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10, color: C.white, fontSize: 12 }}>
-                <span>🔒</span><span>Your data is secure. All email actions create drafts for your review.</span>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {connectorsList.map(c => {
-                  const isConnected = connectedApps.includes(c.id);
-                  return (
-                    <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", borderRadius: 14, background: isConnected ? C.purple + "06" : C.lightBg, border: isConnected ? `1.5px solid ${C.purple}40` : "1.5px solid transparent" }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: c.color + "15", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{c.icon}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: C.darkGrey }}>{c.name}</div>
-                        <div style={{ fontSize: 12, color: C.grey }}>{c.desc}</div>
-                      </div>
-                      <SecurityBadge security={c.security} />
-                      <button onClick={() => toggleConnector(c.id)} style={{ padding: "6px 16px", borderRadius: 20, border: isConnected ? `1px solid ${C.grey}40` : "none", background: isConnected ? "transparent" : C.purple, color: isConnected ? C.darkGrey : C.white, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'Quicksand', sans-serif", minWidth: 90 }}>
-                        {isConnected ? "Connected ✓" : "Connect"}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {currentStep === "workflows" && (
-            <div>
-              <h2 style={{ margin: "0 0 28px", fontSize: 24, fontWeight: 800, color: C.darkGrey, textAlign: "center" }}>Switch on your automations</h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {workflowTemplates.map(w => {
-                  const missing = w.connectors.filter(c => !connectedApps.includes(c));
-                  const canActivate = missing.length === 0;
-                  const isActive = activeWorkflows.includes(w.id);
-                  return (
-                    <div key={w.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", borderRadius: 14, background: isActive ? w.color + "06" : C.lightBg, border: isActive ? `1.5px solid ${w.color}40` : "1.5px solid transparent", opacity: canActivate ? 1 : 0.5 }}>
-                      <div style={{ width: 40, height: 40, borderRadius: 12, background: w.color + "15", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{w.icon}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: C.darkGrey }}>{w.name}</div>
-                        {!canActivate && <div style={{ fontSize: 11, color: "#E65100", marginTop: 2 }}>Needs: {missing.map(id => connectorsList.find(x => x.id === id)?.name).join(", ")}</div>}
-                      </div>
-                      <span style={{ fontSize: 12, color: w.color, fontWeight: 600 }}>~{w.timeSaved}</span>
-                      {canActivate && (
-                        <div onClick={() => toggleWorkflow(w.id)} style={{ width: 44, height: 24, borderRadius: 12, background: isActive ? w.color : "#E0E0E0", cursor: "pointer", position: "relative" }}>
-                          <div style={{ width: 20, height: 20, borderRadius: "50%", background: C.white, position: "absolute", top: 2, left: isActive ? 22 : 2, transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {currentStep === "ready" && (
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
-              <h2 style={{ margin: "0 0 8px", fontSize: 28, fontWeight: 800, color: C.darkGrey }}>You&apos;re all set</h2>
-              <p style={{ margin: "0 0 32px", fontSize: 15, color: C.grey, lineHeight: 1.6 }}>CoachOS is ready to start working for you.</p>
-              <div style={{ display: "flex", gap: 16, justifyContent: "center", marginBottom: 32 }}>
-                {[{ n: selectedGoals.length, label: "goals set" }, { n: connectedApps.length, label: "tools connected" }, { n: activeWorkflows.length, label: "automations on" }].map((s, i) => (
-                  <div key={i} style={{ background: C.lightPurple, borderRadius: 16, padding: "20px 28px", textAlign: "center" }}>
-                    <div style={{ fontSize: 28, fontWeight: 800, color: C.purple, fontFamily: "'Red Hat Display', sans-serif" }}>{s.n}</div>
-                    <div style={{ fontSize: 12, color: C.grey, marginTop: 2 }}>{s.label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div style={{ width: "100%", maxWidth: 640, marginTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          {onboardingStep > 0 ? (
-            <button onClick={() => setOnboardingStep(s => s - 1)} style={{ background: "none", border: "none", color: C.grey, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Quicksand', sans-serif" }}>← Back</button>
-          ) : <div />}
-          {currentStep === "ready" ? (
-            <button onClick={finishOnboarding} style={{ background: C.purple, color: C.white, border: "none", borderRadius: 24, padding: "14px 36px", fontSize: 16, fontWeight: 700, cursor: "pointer", fontFamily: "'Red Hat Display', sans-serif" }}>Go to dashboard →</button>
-          ) : (
-            <button onClick={() => setOnboardingStep(s => s + 1)} disabled={!canNext} style={{ background: canNext ? C.purple : "#E0E0E0", color: canNext ? C.white : C.grey, border: "none", borderRadius: 24, padding: "14px 36px", fontSize: 15, fontWeight: 700, cursor: canNext ? "pointer" : "default", fontFamily: "'Red Hat Display', sans-serif" }}>
-              {currentStep === "welcome" ? "Let's go →" : "Next →"}
-            </button>
-          )}
-        </div>
-        {currentStep !== "ready" && <button onClick={finishOnboarding} style={{ background: "none", border: "none", color: C.grey, fontSize: 13, cursor: "pointer", marginTop: 16, fontFamily: "'Quicksand', sans-serif" }}>Skip setup and explore</button>}
       </div>
     );
   }
@@ -389,8 +457,8 @@ export default function CoachOS() {
       {/* Sidebar */}
       <div style={{ width: 260, background: C.white, borderRight: "1px solid #F0EDF5", display: "flex", flexDirection: "column", flexShrink: 0 }}>
         <div style={{ padding: "28px 24px", borderBottom: "1px solid #F0EDF5" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 12, background: C.purple, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => setPage("dashboard")}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: C.purple, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <span style={{ fontSize: 20 }}>⚡</span>
             </div>
             <div>
@@ -404,8 +472,8 @@ export default function CoachOS() {
             <button key={item.id} onClick={() => { setPage(item.id); setViewingWorkflow(null); }} style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "12px 16px", borderRadius: 12, border: "none", background: page === item.id ? C.purple + "10" : "transparent", color: page === item.id ? C.purple : C.darkGrey, fontWeight: page === item.id ? 700 : 500, fontSize: 14, cursor: "pointer", fontFamily: "'Quicksand', sans-serif", marginBottom: 4, textAlign: "left", position: "relative" }}>
               <span style={{ fontSize: 18 }}>{item.icon}</span>
               {item.label}
-              {(item as { badge?: number }).badge && (item as { badge?: number }).badge! > 0 && (
-                <span style={{ marginLeft: "auto", background: C.pink, color: C.white, fontSize: 11, fontWeight: 700, width: 20, height: 20, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>{(item as { badge?: number }).badge}</span>
+              {!!((item as { badge?: number }).badge) && (
+                <span style={{ marginLeft: "auto", background: C.pink, color: C.white, fontSize: 11, fontWeight: 700, minWidth: 20, height: 20, borderRadius: 10, padding: "0 6px", display: "flex", alignItems: "center", justifyContent: "center" }}>{(item as { badge?: number }).badge}</span>
               )}
             </button>
           ))}
@@ -416,6 +484,15 @@ export default function CoachOS() {
             <div style={{ fontSize: 24, fontWeight: 800, color: C.darkGrey, fontFamily: "'Red Hat Display', sans-serif" }}>19.5 hrs</div>
             <div style={{ fontSize: 12, color: C.grey }}>saved by automations</div>
           </div>
+          <button
+            onClick={async () => {
+              await fetch("/api/auth/sign-out", { method: "POST" });
+              window.location.href = "/sign-in";
+            }}
+            style={{ width: "100%", padding: "10px", borderRadius: 10, border: "1.5px solid #E0E0E0", background: "none", fontSize: 13, fontWeight: 700, color: C.grey, cursor: "pointer", fontFamily: "'Quicksand', sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+          >
+            <span style={{ transform: "rotate(180deg)", display: "inline-block" }}>→</span> Sign out
+          </button>
         </div>
       </div>
 
@@ -425,27 +502,35 @@ export default function CoachOS() {
         {page === "dashboard" && (
           <div>
             <div style={{ marginBottom: 32 }}>
-              <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: C.darkGrey }}>Good morning, coach 👋</h2>
+              <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: C.darkGrey }}>Good morning, {dashboardData?.coach.name ?? "coach"} 👋</h2>
               <p style={{ margin: "6px 0 0", color: C.grey, fontSize: 15 }}>Here&apos;s what CoachOS has been doing for you.</p>
             </div>
             <div style={{ display: "flex", gap: 16, marginBottom: 32, flexWrap: "wrap" }}>
-              <StatCard icon="⚡" value={activeWorkflows.length} label="Active workflows" color={C.purple} sub={`of ${workflowTemplates.length} available`} />
+              <StatCard icon="⚡" value={dashboardData?.stats.activeWorkflows ?? activeWorkflows.length} label="Active workflows" color={C.purple} sub={`of ${workflowTemplates.length} available`} />
               <StatCard icon="✅" value="52" label="Tasks completed" color="#4CAF50" sub="↑ 18% from last week" />
-              <StatCard icon="🔌" value={connectedApps.length} label="Connected apps" color={C.teal} sub={`of ${connectorsList.length} available`} />
+              <StatCard icon="🔌" value={dashboardData?.stats.connectedIntegrations ?? connectedApps.length} label="Connected apps" color={C.teal} sub={`of ${connectorsList.length} available`} />
               <StatCard icon="⏱️" value="19.5h" label="Time saved" color={C.orange} sub="This week" />
             </div>
             <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
               <div style={{ flex: 2, minWidth: 400 }}>
                 <h3 style={{ margin: "0 0 16px", fontSize: 18, color: C.darkGrey }}>Recent activity</h3>
                 <div style={{ background: C.white, borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #F0EDF5", overflow: "hidden" }}>
-                  {recentActivity.map((item, i) => {
-                    const wf = workflowTemplates.find(w => w.id === item.workflow);
+                  {(!dashboardData?.recentActivity || dashboardData.recentActivity.length === 0) && (
+                    <div style={{ padding: "24px", textAlign: "center", color: C.grey, fontSize: 13 }}>No recent activity yet</div>
+                  )}
+                  {(dashboardData?.recentActivity ?? []).map((item, i) => {
+                    const templateId = item.metadata?.templateId as string | undefined;
+                    const wf = templateId ? workflowTemplates.find(w => w.id === templateId) : null;
+                    const dotColor = (item.action === "workflow.run" || item.action === "workflow.activated") ? C.teal
+                      : item.action === "landing_page.published" ? "#4CAF50"
+                      : C.grey;
+                    const list = dashboardData?.recentActivity ?? [];
                     return (
-                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", borderBottom: i < recentActivity.length - 1 ? "1px solid #F8F7FC" : "none" }}>
-                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: item.type === "success" ? "#4CAF50" : item.type === "alert" ? C.orange : C.teal, flexShrink: 0 }} />
-                        <div style={{ flex: 1, fontSize: 13, color: C.darkGrey, fontWeight: 500 }}>{item.text}</div>
+                      <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px", borderBottom: i < list.length - 1 ? "1px solid #F8F7FC" : "none" }}>
+                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: dotColor, flexShrink: 0 }} />
+                        <div style={{ flex: 1, fontSize: 13, color: C.darkGrey, fontWeight: 500 }}>{item.label}</div>
                         {wf && <Badge color={wf.color} icon={wf.icon}>{wf.name}</Badge>}
-                        <div style={{ fontSize: 12, color: C.grey, flexShrink: 0 }}>{item.time}</div>
+                        <div style={{ fontSize: 12, color: C.grey, flexShrink: 0 }}>{timeAgo(new Date(item.createdAt))}</div>
                       </div>
                     );
                   })}
@@ -510,10 +595,178 @@ export default function CoachOS() {
         {/* WORKFLOWS */}
         {page === "workflows" && !viewingWorkflow && (
           <div>
-            <div style={{ marginBottom: 32 }}>
-              <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: C.darkGrey }}>Workflow templates</h2>
-              <p style={{ margin: "6px 0 0", color: C.grey, fontSize: 15 }}>Pre-built automations for the things coaches do most.</p>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 32, gap: 12, flexWrap: "wrap" }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: C.darkGrey }}>Workflow templates</h2>
+                <p style={{ margin: "6px 0 0", color: C.grey, fontSize: 15 }}>Pre-built automations for the things coaches do most.</p>
+              </div>
+              <button
+                onClick={() => setShowCreateWorkflow(true)}
+                style={{ background: C.purple, color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'Quicksand', sans-serif", flexShrink: 0 }}
+              >
+                + Create workflow
+              </button>
             </div>
+
+            {/* Create workflow modal */}
+            {showCreateWorkflow && (() => {
+              const STEP_TYPES: CustomStep["type"][] = ["trigger", "action", "wait", "condition", "notify"];
+              const STEP_COLORS: Record<string, string> = { trigger: "#6626e9", action: "#41D5E2", wait: "#FFAD0D", condition: "#E55CFF", notify: "#4CAF50" };
+              return (
+                <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16 }} onClick={() => setShowCreateWorkflow(false)}>
+                  <div style={{ background: C.white, borderRadius: 20, padding: 32, width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
+                    <h3 style={{ margin: "0 0 20px", fontSize: 20, fontWeight: 800, color: C.darkGrey }}>Create workflow</h3>
+
+                    <div style={{ marginBottom: 16 }}>
+                      <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.darkGrey, marginBottom: 6 }}>Name *</label>
+                      <input
+                        value={newWorkflowName}
+                        onChange={e => setNewWorkflowName(e.target.value)}
+                        placeholder="e.g. Weekly client check-in"
+                        style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid #E0E0E0", fontSize: 14, fontFamily: "'Quicksand', sans-serif", outline: "none", boxSizing: "border-box" }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: 24 }}>
+                      <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: C.darkGrey, marginBottom: 6 }}>Description</label>
+                      <textarea
+                        value={newWorkflowDesc}
+                        onChange={e => setNewWorkflowDesc(e.target.value)}
+                        placeholder="What does this workflow do?"
+                        rows={2}
+                        style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid #E0E0E0", fontSize: 14, fontFamily: "'Quicksand', sans-serif", outline: "none", resize: "vertical", boxSizing: "border-box" }}
+                      />
+                    </div>
+
+                    {/* Steps builder */}
+                    <div style={{ marginBottom: 24 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                        <label style={{ fontSize: 13, fontWeight: 700, color: C.darkGrey }}>Steps</label>
+                        <button
+                          onClick={() => setNewWorkflowSteps(p => [...p, { label: "", type: "action" }])}
+                          style={{ background: C.purple + "15", color: C.purple, border: "none", borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Quicksand', sans-serif" }}
+                        >+ Add step</button>
+                      </div>
+                      {newWorkflowSteps.length === 0 && (
+                        <div style={{ fontSize: 13, color: C.grey, padding: "12px 0", textAlign: "center", borderRadius: 10, border: "1.5px dashed #E0E0E0" }}>No steps yet — click "+ Add step"</div>
+                      )}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        {newWorkflowSteps.map((step, i) => (
+                          <div key={i}>
+                            {i > 0 && <div style={{ display: "flex", justifyContent: "center", padding: "2px 0" }}><div style={{ width: 2, height: 12, background: "#E0E0E0" }} /></div>}
+                            <div style={{ display: "flex", gap: 8, alignItems: "center", background: "#F8F7FC", borderRadius: 10, padding: "8px 10px" }}>
+                              <select
+                                value={step.type}
+                                onChange={e => setNewWorkflowSteps(p => p.map((s, j) => j === i ? { ...s, type: e.target.value as CustomStep["type"] } : s))}
+                                style={{ fontSize: 11, fontWeight: 700, color: STEP_COLORS[step.type], background: STEP_COLORS[step.type] + "15", border: "none", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontFamily: "'Quicksand', sans-serif", flexShrink: 0 }}
+                              >
+                                {STEP_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                              </select>
+                              <input
+                                value={step.label}
+                                onChange={e => setNewWorkflowSteps(p => p.map((s, j) => j === i ? { ...s, label: e.target.value } : s))}
+                                placeholder="Describe this step…"
+                                style={{ flex: 1, padding: "6px 10px", borderRadius: 8, border: "1.5px solid #E0E0E0", fontSize: 13, fontFamily: "'Quicksand', sans-serif", outline: "none", minWidth: 0 }}
+                              />
+                              <button onClick={() => setNewWorkflowSteps(p => p.filter((_, j) => j !== i))} style={{ background: "none", border: "none", color: C.grey, fontSize: 16, cursor: "pointer", padding: "0 4px", flexShrink: 0 }}>×</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+                      <button onClick={() => { setShowCreateWorkflow(false); setNewWorkflowSteps([]); }} style={{ padding: "10px 20px", borderRadius: 10, border: "1.5px solid #E0E0E0", background: "none", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'Quicksand', sans-serif", color: C.darkGrey }}>Cancel</button>
+                      <button
+                        disabled={!newWorkflowName.trim() || creatingWorkflow}
+                        onClick={async () => {
+                          if (!newWorkflowName.trim()) return;
+                          setCreatingWorkflow(true);
+                          try {
+                            const res = await fetch("/api/workflow", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ name: newWorkflowName, description: newWorkflowDesc, steps: newWorkflowSteps.filter(s => s.label.trim()) }),
+                            });
+                            const { data } = await res.json();
+                            if (data?.workflow) {
+                              setCustomWorkflows(p => [...p, { ...data.workflow, customSteps: data.workflow.customSteps ?? [] }]);
+                              setShowCreateWorkflow(false);
+                              setNewWorkflowName("");
+                              setNewWorkflowDesc("");
+                              setNewWorkflowSteps([]);
+                            }
+                          } finally {
+                            setCreatingWorkflow(false);
+                          }
+                        }}
+                        style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: newWorkflowName.trim() ? C.purple : "#ccc", color: "#fff", fontSize: 14, fontWeight: 700, cursor: newWorkflowName.trim() ? "pointer" : "not-allowed", fontFamily: "'Quicksand', sans-serif" }}
+                      >
+                        {creatingWorkflow ? "Creating…" : "Create"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Custom workflows */}
+            {customWorkflows.length > 0 && (
+              <div style={{ marginBottom: 36 }}>
+                <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700, color: C.darkGrey }}>Your workflows</h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {customWorkflows.map(w => {
+                    const STEP_COLORS: Record<string, string> = { trigger: "#6626e9", action: "#41D5E2", wait: "#FFAD0D", condition: "#E55CFF", notify: "#4CAF50" };
+                    return (
+                      <div key={w.id} style={{ background: C.white, borderRadius: 14, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: w.active ? `2px solid ${C.purple}` : "1px solid #F0EDF5", overflow: "hidden" }}>
+                        <div style={{ padding: "18px 20px", display: "flex", alignItems: "center", gap: 16 }}>
+                          <div style={{ width: 40, height: 40, borderRadius: 10, background: C.purple + "15", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>⚙️</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 700, fontSize: 15, color: C.darkGrey }}>{w.customName}</div>
+                            {w.customDescription && <div style={{ fontSize: 13, color: C.grey, marginTop: 2 }}>{w.customDescription}</div>}
+                            {w.customSteps.length > 0 && <div style={{ fontSize: 12, color: C.grey, marginTop: 4 }}>{w.customSteps.length} step{w.customSteps.length !== 1 ? "s" : ""}</div>}
+                          </div>
+                          <div
+                            onClick={async () => {
+                              const newActive = !w.active;
+                              setCustomWorkflows(p => p.map(x => x.id === w.id ? { ...x, active: newActive } : x));
+                              await fetch(`/api/workflow/${w.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ active: newActive }) });
+                            }}
+                            style={{ width: 44, height: 24, borderRadius: 12, background: w.active ? C.purple : "#E0E0E0", cursor: "pointer", position: "relative", flexShrink: 0 }}
+                          >
+                            <div style={{ width: 20, height: 20, borderRadius: "50%", background: C.white, position: "absolute", top: 2, left: w.active ? 22 : 2, transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+                          </div>
+                          <button
+                            onClick={async () => {
+                              setCustomWorkflows(p => p.filter(x => x.id !== w.id));
+                              await fetch(`/api/workflow/${w.id}`, { method: "DELETE" });
+                            }}
+                            style={{ background: "none", border: "none", color: C.grey, fontSize: 18, cursor: "pointer", padding: "0 4px", flexShrink: 0 }}
+                          >×</button>
+                        </div>
+                        {w.customSteps.length > 0 && (
+                          <div style={{ borderTop: "1px solid #F0EDF5", padding: "16px 20px", background: "#FAFAFA", display: "flex", flexDirection: "column", gap: 0 }}>
+                            {w.customSteps.map((step, i) => (
+                              <div key={i}>
+                                {i > 0 && <div style={{ display: "flex", justifyContent: "center", padding: "2px 0" }}><div style={{ width: 2, height: 14, background: "#E0E0E0", borderRadius: 1 }} /></div>}
+                                <div style={{ display: "flex", alignItems: "center", gap: 10, background: C.white, borderRadius: 10, padding: "8px 12px", border: "1px solid #F0EDF5" }}>
+                                  <span style={{ fontSize: 11, fontWeight: 700, color: STEP_COLORS[step.type] ?? C.purple, background: (STEP_COLORS[step.type] ?? C.purple) + "15", borderRadius: 6, padding: "3px 8px", flexShrink: 0 }}>{step.type}</span>
+                                  <span style={{ fontSize: 13, color: C.darkGrey }}>{step.label}</span>
+                                  <span style={{ marginLeft: "auto", fontSize: 13, color: C.grey, fontWeight: 600, flexShrink: 0 }}>{i + 1}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Template workflows */}
+            <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700, color: C.darkGrey }}>Templates</h3>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
               {workflowTemplates.map(w => {
                 const missing = w.connectors.filter(c => !connectedApps.includes(c));
@@ -566,34 +819,99 @@ export default function CoachOS() {
               <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: C.darkGrey }}>Second brain</h2>
               <p style={{ margin: "6px 0 0", color: C.grey, fontSize: 15 }}>Everything CoachOS learns about your coaching, your clients, and your business.</p>
             </div>
-            <div style={{ background: C.white, borderRadius: 16, padding: "28px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #F0EDF5" }}>
-              <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700, color: C.darkGrey }}>🧠 Recent sessions</h3>
-              <p style={{ margin: "0 0 24px", fontSize: 13, color: C.grey }}>Your coaching sessions, summarised and ready to use.</p>
-              {[
-                { initials: "SC", name: "Sarah Chen", date: "12 Mar", duration: "52 min", color: "#4CAF50", tags: ["Pricing confidence", "Imposter syndrome"], summary: "Sarah is ready to raise her rates but fears losing clients. We worked through value-based pricing.", keyMoment: "'I always felt like I was overcharging until you asked me what my clients would pay to NOT have this problem'" },
-                { initials: "JC", name: "James Chen", date: "12 Mar", duration: "60 min", color: "#2196F3", tags: ["Goal clarity", "Action planning"], summary: "James identified three highest-leverage activities and built a weekly action plan.", keyMoment: "'I've been trying to do everything when I should have been doing three things really well'" },
-                { initials: "ER", name: "Emma Richardson", date: "8 Mar", duration: "45 min", color: "#FF9800", tags: ["Revenue goals", "Client acquisition"], summary: "Emma diagnosed the gap between her marketing message and her discovery call script.", keyMoment: "'My Instagram says one thing and my sales call says another. No wonder people are confused.'" },
-              ].map((s, si) => (
-                <div key={si} style={{ background: C.lightBg, borderRadius: 16, padding: "24px", marginBottom: si < 2 ? 16 : 0, border: "1px solid #F0EDF5" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <div style={{ width: 40, height: 40, borderRadius: "50%", background: s.color, display: "flex", alignItems: "center", justifyContent: "center", color: C.white, fontSize: 14, fontWeight: 700 }}>{s.initials}</div>
-                      <div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: C.darkGrey }}>{s.name}</div>
-                        <div style={{ fontSize: 12, color: C.grey }}>{s.date} · {s.duration}</div>
+
+            {/* Search */}
+            <div style={{ marginBottom: 20 }}>
+              <input
+                type="text"
+                placeholder="Search entries…"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                style={{ width: "100%", padding: "12px 16px", borderRadius: 12, border: "1px solid #E0E0E0", fontSize: 14, fontFamily: "'Quicksand', sans-serif", outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+
+            {/* Entry list */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 28 }}>
+              {!entriesLoaded && (
+                <div style={{ textAlign: "center", padding: "32px", color: C.grey, fontSize: 13 }}>Loading…</div>
+              )}
+              {entriesLoaded && filteredEntries.length === 0 && (
+                <div style={{ background: C.white, borderRadius: 16, padding: "28px", textAlign: "center", color: C.grey, fontSize: 13, border: "1px solid #F0EDF5" }}>No entries yet. Add one below.</div>
+              )}
+              {filteredEntries.map(entry => (
+                <div key={entry.id} style={{ background: C.white, borderRadius: 16, padding: "20px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #F0EDF5" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
+                    <div style={{ flex: 1, cursor: "pointer" }} onClick={() => setExpandedEntry(expandedEntry === entry.id ? null : entry.id)}>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: C.darkGrey, marginBottom: 4 }}>{entry.title}</div>
+                      <div style={{ fontSize: 13, color: C.grey, lineHeight: 1.5 }}>
+                        {expandedEntry === entry.id
+                          ? entry.content
+                          : entry.content.length > 120 ? entry.content.slice(0, 120) + "…" : entry.content}
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      {s.tags.map((t, ti) => <Badge key={ti} color={C.purple}>{t}</Badge>)}
-                    </div>
+                    <button onClick={() => deleteEntry(entry.id)} style={{ background: "none", border: "none", color: C.grey, fontSize: 16, cursor: "pointer", padding: "0 4px", flexShrink: 0 }}>×</button>
                   </div>
-                  <div style={{ marginBottom: 12 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: C.purple, marginBottom: 6 }}>Session summary</div>
-                    <div style={{ fontSize: 13, color: C.darkGrey, lineHeight: 1.6 }}>{s.summary}</div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
+                    {entry.tags.map((tag, ti) => <Badge key={ti} color={C.purple}>{tag}</Badge>)}
+                    <Badge color={entry.source === "ai" ? "#9333EA" : C.grey}>{entry.source === "ai" ? "AI generated" : "Manual"}</Badge>
+                    <span style={{ fontSize: 12, color: C.grey, marginLeft: "auto" }}>{timeAgo(new Date(entry.createdAt))}</span>
                   </div>
-                  <div style={{ borderLeft: `3px solid ${C.purple}`, padding: "10px 16px", background: C.lightPurple, borderRadius: "0 8px 8px 0", fontSize: 13, color: C.darkGrey, fontStyle: "italic", lineHeight: 1.6 }}>{s.keyMoment}</div>
                 </div>
               ))}
+            </div>
+
+            {/* Add entry */}
+            <div style={{ background: C.white, borderRadius: 16, padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #F0EDF5", marginBottom: 20 }}>
+              <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700, color: C.darkGrey }}>Add entry</h3>
+              <input
+                type="text"
+                placeholder="Title"
+                value={newEntryTitle}
+                onChange={e => setNewEntryTitle(e.target.value)}
+                style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid #E0E0E0", fontSize: 14, fontFamily: "'Quicksand', sans-serif", outline: "none", marginBottom: 10, boxSizing: "border-box" }}
+              />
+              <textarea
+                placeholder="Content"
+                value={newEntryContent}
+                onChange={e => setNewEntryContent(e.target.value)}
+                rows={3}
+                style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid #E0E0E0", fontSize: 14, fontFamily: "'Quicksand', sans-serif", outline: "none", resize: "vertical", marginBottom: 10, boxSizing: "border-box" }}
+              />
+              <input
+                type="text"
+                placeholder="Tags (comma-separated)"
+                value={newEntryTags}
+                onChange={e => setNewEntryTags(e.target.value)}
+                style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid #E0E0E0", fontSize: 14, fontFamily: "'Quicksand', sans-serif", outline: "none", marginBottom: 12, boxSizing: "border-box" }}
+              />
+              <button
+                onClick={addEntry}
+                disabled={addingEntry || !newEntryTitle.trim() || !newEntryContent.trim()}
+                style={{ padding: "10px 24px", borderRadius: 24, border: "none", background: C.purple, color: C.white, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "'Quicksand', sans-serif", opacity: addingEntry || !newEntryTitle.trim() || !newEntryContent.trim() ? 0.5 : 1 }}
+              >
+                {addingEntry ? "Saving…" : "Add entry"}
+              </button>
+            </div>
+
+            {/* Generate with AI */}
+            <div style={{ background: C.white, borderRadius: 16, padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: `1px solid ${C.purple}30` }}>
+              <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 700, color: C.darkGrey }}>Generate with AI</h3>
+              <div style={{ fontSize: 12, color: C.grey, marginBottom: 14 }}>Uses 3 credits</div>
+              <textarea
+                placeholder="Describe what you want to add to your second brain…"
+                value={aiPrompt}
+                onChange={e => setAiPrompt(e.target.value)}
+                rows={3}
+                style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid #E0E0E0", fontSize: 14, fontFamily: "'Quicksand', sans-serif", outline: "none", resize: "vertical", marginBottom: 12, boxSizing: "border-box" }}
+              />
+              <button
+                onClick={generateEntry}
+                disabled={generatingEntry || !aiPrompt.trim()}
+                style={{ padding: "10px 24px", borderRadius: 24, border: "none", background: "#9333EA", color: C.white, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "'Quicksand', sans-serif", opacity: generatingEntry || !aiPrompt.trim() ? 0.5 : 1 }}
+              >
+                {generatingEntry ? "Generating…" : "Generate with AI ✨"}
+              </button>
             </div>
           </div>
         )}
@@ -610,7 +928,22 @@ export default function CoachOS() {
                 <div style={{ fontSize: 12, color: C.grey, fontWeight: 600, marginBottom: 4 }}>Weekly time budget</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div style={{ fontSize: 32, fontWeight: 800, color: C.purple, fontFamily: "'Red Hat Display', sans-serif" }}>{hoursPerWeek}h</div>
-                  <input type="range" min="1" max="20" value={hoursPerWeek} onChange={e => setHoursPerWeek(Number(e.target.value))} style={{ flex: 1, accentColor: C.purple }} />
+                  <input
+                    type="range"
+                    min="1"
+                    max="20"
+                    value={hoursPerWeek}
+                    onChange={e => setHoursPerWeek(Number(e.target.value))}
+                    onMouseUp={e => {
+                      const val = Number((e.target as HTMLInputElement).value);
+                      fetch("/api/coach", {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ hoursPerWeek: val }),
+                      }).catch(() => {});
+                    }}
+                    style={{ flex: 1, accentColor: C.purple }}
+                  />
                 </div>
               </div>
               <div style={{ background: C.white, borderRadius: 16, padding: "20px 24px", flex: 1, minWidth: 180, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #F0EDF5" }}>
@@ -618,25 +951,65 @@ export default function CoachOS() {
                 <div style={{ fontSize: 32, fontWeight: 800, color: C.orange, fontFamily: "'Red Hat Display', sans-serif" }}>{totalPoints}</div>
               </div>
             </div>
+
+            {!tasksLoaded && (
+              <div style={{ textAlign: "center", padding: "32px", color: C.grey, fontSize: 13 }}>Loading tasks…</div>
+            )}
+
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {conciergeActions.map(action => {
-                const done = completedActions.includes(action.id);
+              {tasksLoaded && tasks.length === 0 && (
+                <div style={{ background: C.white, borderRadius: 16, padding: "24px", textAlign: "center", color: C.grey, fontSize: 13, border: "1px solid #F0EDF5" }}>No tasks yet. Generate some below.</div>
+              )}
+              {tasks.map(task => {
+                const done = task.status === "done";
+                const priorityColor = task.priority === "high" ? "#E65100" : task.priority === "medium" ? C.purple : C.grey;
                 return (
-                  <div key={action.id} style={{ background: C.white, borderRadius: 16, padding: "20px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: done ? `2px solid ${C.purple}` : "1px solid #F0EDF5", display: "flex", alignItems: "center", gap: 16, opacity: done ? 0.7 : 1 }}>
-                    <div onClick={() => toggleAction(action.id)} style={{ width: 28, height: 28, borderRadius: 8, background: done ? C.purple : "#F0EDF5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
+                  <div key={task.id} style={{ background: C.white, borderRadius: 16, padding: "20px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: done ? `2px solid ${C.purple}` : "1px solid #F0EDF5", display: "flex", alignItems: "center", gap: 16, opacity: done ? 0.7 : 1 }}>
+                    <div onClick={() => toggleTask(task)} style={{ width: 28, height: 28, borderRadius: 8, background: done ? C.purple : "#F0EDF5", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}>
                       {done && <span style={{ color: C.white, fontSize: 14, fontWeight: 700 }}>✓</span>}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: done ? 400 : 600, color: C.darkGrey, textDecoration: done ? "line-through" : "none" }}>{action.task}</div>
+                      <div style={{ fontSize: 14, fontWeight: done ? 400 : 600, color: C.darkGrey, textDecoration: done ? "line-through" : "none" }}>{task.title}</div>
                       <div style={{ display: "flex", gap: 12, marginTop: 6, fontSize: 12, color: C.grey }}>
-                        <span>⏱️ {action.timeMin} min</span>
-                        <span style={{ color: C.orange, fontWeight: 600 }}>+{action.points} pts</span>
+                        <span>⏱️ {task.timeMinutes} min</span>
+                        <span style={{ color: C.orange, fontWeight: 600 }}>+{task.points} pts</span>
                       </div>
                     </div>
-                    <Badge color={action.type === "content" ? C.purple : action.type === "outreach" ? C.teal : C.orange}>{action.type}</Badge>
+                    <Badge color={priorityColor}>{task.priority}</Badge>
                   </div>
                 );
               })}
+            </div>
+
+            {/* Generate tasks with AI */}
+            <div style={{ marginTop: 20, background: C.white, borderRadius: 16, padding: "20px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: `1px solid ${C.purple}30` }}>
+              <button
+                onClick={generateTasks}
+                disabled={generatingTasks}
+                style={{ padding: "12px 24px", borderRadius: 24, border: "none", background: C.purple, color: C.white, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "'Quicksand', sans-serif", opacity: generatingTasks ? 0.6 : 1, display: "block", width: "100%", marginBottom: 8 }}
+              >
+                {generatingTasks ? "Generating…" : "Generate tasks with AI ✨"}
+              </button>
+              <div style={{ fontSize: 12, color: C.grey, textAlign: "center" }}>Uses 2 credits</div>
+            </div>
+
+            {/* Add task */}
+            <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
+              <input
+                type="text"
+                placeholder="Add a task…"
+                value={newTaskTitle}
+                onChange={e => setNewTaskTitle(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && addTask()}
+                style={{ flex: 1, padding: "12px 16px", borderRadius: 12, border: "1px solid #E0E0E0", fontSize: 14, fontFamily: "'Quicksand', sans-serif", outline: "none" }}
+              />
+              <button
+                onClick={addTask}
+                disabled={addingTask || !newTaskTitle.trim()}
+                style={{ padding: "12px 20px", borderRadius: 12, border: "none", background: C.purple, color: C.white, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "'Quicksand', sans-serif", opacity: addingTask || !newTaskTitle.trim() ? 0.5 : 1 }}
+              >
+                {addingTask ? "…" : "Add"}
+              </button>
             </div>
           </div>
         )}
@@ -644,18 +1017,41 @@ export default function CoachOS() {
         {/* NOTIFICATIONS */}
         {page === "notifications" && (
           <div>
-            <div style={{ marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, gap: 12, flexWrap: "wrap" }}>
               <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: C.darkGrey }}>Notifications</h2>
+              <button
+                onClick={async () => {
+                  const res = await fetch("/api/notifications", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+                  const { data } = await res.json();
+                  if (data?.notification) setNotifications(p => [data.notification, ...p]);
+                }}
+                style={{ background: "#e53e3e", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'Quicksand', sans-serif" }}
+              >
+                + Demo notification
+              </button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {notificationsData.map(n => (
-                <div key={n.id} style={{ background: n.read ? C.white : C.lightPurple, borderRadius: 16, padding: "20px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: n.read ? "1px solid #F0EDF5" : `1px solid ${C.purple}30`, display: "flex", gap: 16 }}>
+              {notifications.length === 0 && (
+                <div style={{ background: C.white, borderRadius: 16, padding: "28px", textAlign: "center", color: C.grey, fontSize: 13, border: "1px solid #F0EDF5" }}>No notifications</div>
+              )}
+              {notifications.map(n => (
+                <div
+                  key={n.id}
+                  onClick={() => !n.read && markNotificationRead(n.id)}
+                  style={{ background: n.read ? C.white : C.lightPurple, borderRadius: 16, padding: "20px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: n.read ? "1px solid #F0EDF5" : `1px solid ${C.purple}30`, display: "flex", gap: 16, cursor: n.read ? "default" : "pointer", transition: "background 0.15s" }}
+                >
                   <div style={{ width: 8, height: 8, borderRadius: "50%", background: n.read ? "transparent" : C.purple, marginTop: 6, flexShrink: 0 }} />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 15, fontWeight: 700, color: C.darkGrey, marginBottom: 4 }}>{n.title}</div>
-                    <div style={{ fontSize: 13, color: C.grey, lineHeight: 1.5 }}>{n.desc}</div>
-                    <div style={{ fontSize: 12, color: C.grey, marginTop: 8 }}>{n.time}</div>
+                    <div style={{ fontSize: 13, color: C.grey, lineHeight: 1.5 }}>{n.body}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8 }}>
+                      <div style={{ fontSize: 12, color: C.grey }}>{timeAgo(new Date(n.createdAt))}</div>
+                      {!n.read && (
+                        <span style={{ fontSize: 12, color: C.purple, fontWeight: 600 }}>Click to mark as read</span>
+                      )}
+                    </div>
                   </div>
+                  <button onClick={e => { e.stopPropagation(); dismissNotification(n.id); }} style={{ background: "none", border: "none", color: C.grey, fontSize: 18, cursor: "pointer", padding: "0 4px", alignSelf: "flex-start", flexShrink: 0 }}>×</button>
                 </div>
               ))}
             </div>
