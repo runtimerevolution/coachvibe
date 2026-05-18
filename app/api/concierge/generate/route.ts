@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/session";
 import { ok, err, unauthorized } from "@/lib/api-response";
@@ -7,7 +7,7 @@ import { deductCredits } from "@/lib/credits";
 
 export const dynamic = "force-dynamic";
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: NextRequest) {
   const coachId = requireAuth(req);
@@ -30,19 +30,22 @@ Available hours per week: ${coach?.hoursPerWeek ?? 5}
 
 Generate exactly 5 actionable tasks for this coach to do this week. Each task should be specific, practical, and achievable within 15-60 minutes.
 
-Return a JSON object with a "tasks" array using this exact structure:
-{"tasks": [{"title": "...", "description": "...", "priority": "high|medium|low", "timeMinutes": number, "points": number}]}
+Return a JSON array with this exact structure:
+[{"title": "...", "description": "...", "priority": "high|medium|low", "timeMinutes": number, "points": number}]
 
 Points should be between 5 and 30, proportional to impact. timeMinutes should be realistic (15-60).`;
 
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1024,
-      system: "You are a JSON generator. Return only a valid JSON object, no markdown.",
-      messages: [{ role: "user", content: prompt }],
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: "You are a JSON generator. Return only a valid JSON array, no markdown." },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.8,
+      response_format: { type: "json_object" },
     });
 
-    const content = message.content[0].type === "text" ? message.content[0].text : null;
+    const content = completion.choices[0]?.message?.content;
     if (!content) return err("No response from AI", 500);
 
     const parsed = JSON.parse(content);
