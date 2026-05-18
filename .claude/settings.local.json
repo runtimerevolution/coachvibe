@@ -30,7 +30,10 @@
       "Bash(ls:*)",
       "Bash(DATABASE_URL=\"postgresql://daniel@localhost:5432/coachvibe\" npx prisma:*)",
       "Bash(DATABASE_URL=\"postgresql://daniel@localhost:5432/coachvibe\" psql:*)",
-      "Bash(pkill -f \"next dev\")"
+      "Bash(pkill -f \"next dev\")",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git add:*)"
     ]
   }
 }
