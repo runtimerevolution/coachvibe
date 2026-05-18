@@ -33,7 +33,8 @@
       "Bash(pkill -f \"next dev\")",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git rm:*)"
     ]
   }
 }
