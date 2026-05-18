@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import { extractColorsDeep } from "@/lib/landing-page/color-extractor";
 import { buildGenerationPrompt, parseGenerationResponse } from "@/lib/landing-page/prompt";
 import type { CoachProfile, GenerationInput, LandingPageColors, LandingPageData, ProductInfo } from "@/lib/landing-page/types";
@@ -11,7 +11,7 @@ import { createNotification } from "@/lib/notifications";
 
 export const dynamic = "force-dynamic";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 async function getCoachProfile(coachId: string): Promise<CoachProfile> {
   const coach = await prisma.coach.findUnique({ where: { id: coachId } });
@@ -67,8 +67,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "productId and targetAudience are required" }, { status: 400 });
     }
 
-    if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json({ success: false, error: "OpenAI API key not configured" }, { status: 500 });
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json({ success: false, error: "Anthropic API key not configured" }, { status: 500 });
     }
 
     const hasCredits = await deductCredits(coachId, 10, "landing_page.generated");
@@ -93,18 +93,14 @@ export async function POST(req: NextRequest) {
     };
 
     const prompt = buildGenerationPrompt(generationInput);
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: "You are a JSON generator. Return only valid JSON, no markdown formatting." },
-        { role: "user", content: prompt },
-      ],
-      temperature: 0.8,
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
       max_tokens: 2000,
-      response_format: { type: "json_object" },
+      system: "You are a JSON generator. Return only valid JSON, no markdown formatting.",
+      messages: [{ role: "user", content: prompt }],
     });
 
-    const rawResponse = completion.choices[0]?.message?.content;
+    const rawResponse = message.content[0].type === "text" ? message.content[0].text : null;
     if (!rawResponse) {
       return NextResponse.json({ success: false, error: "No response from AI" }, { status: 500 });
     }

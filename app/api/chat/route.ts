@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/session";
 import { deductCredits } from "@/lib/credits";
 
 export const dynamic = "force-dynamic";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const SYSTEM_PROMPT = `You are a warm, insightful AI coaching assistant for coaches. You help coaches reflect on their practice, prepare for sessions, draft content, and think through challenges.
 
@@ -29,24 +29,25 @@ export async function POST(req: NextRequest) {
   try {
     const { messages } = await req.json();
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json({
         role: "assistant",
-        content: "OpenAI API key is not configured. Please add OPENAI_API_KEY to your .env.local file.",
+        content: "Anthropic API key is not configured. Please add ANTHROPIC_API_KEY to your .env.local file.",
       });
     }
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        ...messages,
-      ],
-      temperature: 0.7,
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
       max_tokens: 800,
+      system: SYSTEM_PROMPT,
+      messages: messages.map((m: { role: string; content: string }) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      })),
     });
 
-    const reply = completion.choices[0]?.message;
+    const replyContent = response.content[0].type === "text" ? response.content[0].text : "";
+    const reply = { role: "assistant", content: replyContent };
 
     const coachId = requireAuth(req);
     if (coachId) {
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
         await prisma.chatMessage.createMany({
           data: [
             { coachId, role: userMessage.role, content: userMessage.content },
-            ...(reply ? [{ coachId, role: reply.role ?? "assistant", content: reply.content ?? "" }] : []),
+            { coachId, role: "assistant", content: replyContent },
           ],
         });
       }
