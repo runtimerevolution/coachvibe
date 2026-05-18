@@ -58,7 +58,8 @@ Prompt: ${body.prompt}`,
 
     return ok({ entry });
   } catch (error) {
-    console.error("Generate knowledge entry failed:", error);
-    return err("Generation failed", 500);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Generate knowledge entry failed:", message);
+    return err(`Generation failed: ${message}`, 500);
   }
 }
