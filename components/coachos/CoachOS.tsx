@@ -38,9 +38,9 @@ interface NotificationItem { id: string; title: string; body: string; type: stri
 interface ConciergeTask { id: string; title: string; description?: string | null; status: string; priority: string; source: string; points: number; timeMinutes: number; createdAt: string; }
 interface KnowledgeEntry { id: string; title: string; content: string; tags: string[]; source: string; createdAt: string; }
 
-function Badge({ color, children, icon }: { color: string; children: React.ReactNode; icon?: string }) {
+function Badge({ color, children, icon, onClick, style }: { color: string; children: React.ReactNode; icon?: string; onClick?: () => void; style?: React.CSSProperties }) {
   return (
-    <span style={{ background: color + "18", color, padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
+    <span onClick={onClick} style={{ background: color + "18", color, padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4, ...style }}>
       {icon && <span>{icon}</span>}{children}
     </span>
   );
@@ -420,11 +420,12 @@ export default function CoachOS() {
   const creditsTotal = 500;
   const creditsUsed = creditsTotal - creditsRemaining;
 
-  const filteredEntries = searchQuery
+  const q = searchQuery.toLowerCase().trim();
+  const filteredEntries = q
     ? entries.filter(e =>
-        e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        e.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        e.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))
+        e.title.toLowerCase().includes(q) ||
+        e.content.toLowerCase().includes(q) ||
+        (Array.isArray(e.tags) && e.tags.some(t => t.toLowerCase().includes(q)))
       )
     : entries;
 
@@ -853,7 +854,7 @@ export default function CoachOS() {
                     <button onClick={() => deleteEntry(entry.id)} style={{ background: "none", border: "none", color: C.grey, fontSize: 16, cursor: "pointer", padding: "0 4px", flexShrink: 0 }}>×</button>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
-                    {entry.tags.map((tag, ti) => <Badge key={ti} color={C.purple}>{tag}</Badge>)}
+                    {entry.tags.map((tag, ti) => <Badge key={ti} color={C.purple} onClick={() => setSearchQuery(searchQuery === tag ? "" : tag)} style={{ cursor: "pointer" }}>{tag}</Badge>)}
                     <Badge color={entry.source === "ai" ? "#9333EA" : C.grey}>{entry.source === "ai" ? "AI generated" : "Manual"}</Badge>
                     <span style={{ fontSize: 12, color: C.grey, marginLeft: "auto" }}>{timeAgo(new Date(entry.createdAt))}</span>
                   </div>
