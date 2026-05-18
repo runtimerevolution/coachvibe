@@ -8,6 +8,7 @@ node_modules/
 out/
 
 # Env — nunca commitar secrets
+.env
 .env.local
 .env.*.local
 .env.production
