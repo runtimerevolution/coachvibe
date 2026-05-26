@@ -12,6 +12,7 @@ model Coach {
   name         String   @default("Coach")
   email        String   @unique
   password     String?
+  googleId     String?  @unique
   onboarded    Boolean  @default(false)
   bio          String?
   imageUrl     String?

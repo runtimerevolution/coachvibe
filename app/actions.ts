@@ -50,7 +50,7 @@ export async function signInAction(
   }
 
   if (!coach.password) {
-    return { error: "Invalid email or password" };
+    return { error: "This account uses Google Sign In. Please continue with Google." };
   }
 
   const valid = await bcrypt.compare(password, coach.password);
