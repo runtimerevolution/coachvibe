@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { AUTH_SESSION_COOKIE, AUTH_ONBOARDED_COOKIE } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
 
 const cookieOptions = {
