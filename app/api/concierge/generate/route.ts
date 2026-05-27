@@ -4,6 +4,7 @@ import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/session";
 import { ok, err, unauthorized } from "@/lib/api-response";
 import { deductCredits } from "@/lib/credits";
+import { logTokenUsage } from "@/lib/tokens";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,10 @@ Points should be between 5 and 30, proportional to impact. timeMinutes should be
       Array.isArray(parsed) ? parsed : parsed.tasks ?? [];
 
     if (!rawTasks.length) return err("AI returned no tasks", 500);
+
+    if (completion.usage) {
+      await logTokenUsage(coachId, "concierge.generate", completion.usage, 2);
+    }
 
     await prisma.conciergeTask.createMany({
       data: rawTasks.map(t => ({

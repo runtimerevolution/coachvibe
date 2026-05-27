@@ -8,6 +8,7 @@ import { requireAuth } from "@/lib/session";
 import { deductCredits } from "@/lib/credits";
 import { logActivity } from "@/lib/activity";
 import { createNotification } from "@/lib/notifications";
+import { logTokenUsage } from "@/lib/tokens";
 
 export const dynamic = "force-dynamic";
 
@@ -103,6 +104,10 @@ export async function POST(req: NextRequest) {
       max_tokens: 2000,
       response_format: { type: "json_object" },
     });
+
+    if (completion.usage) {
+      await logTokenUsage(coachId, "landing_page.generate", completion.usage, 10);
+    }
 
     const rawResponse = completion.choices[0]?.message?.content;
     if (!rawResponse) {

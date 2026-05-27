@@ -44,7 +44,10 @@ export async function GET(req: NextRequest) {
   });
 
   if (!tokenRes.ok) {
-    return errorRedirect("Failed to authenticate with Google");
+    const errorBody = await tokenRes.json().catch(() => ({}));
+    console.error("Google token exchange failed:", errorBody);
+    console.error("redirect_uri used:", redirectUri);
+    return errorRedirect(`Google error: ${errorBody.error ?? "unknown"} — ${errorBody.error_description ?? ""}`);
   }
 
   const tokens = await tokenRes.json();

@@ -4,6 +4,7 @@ import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/session";
 import { ok, err, unauthorized } from "@/lib/api-response";
 import { deductCredits } from "@/lib/credits";
+import { logTokenUsage } from "@/lib/tokens";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,10 @@ Prompt: ${body.prompt}`,
 
     const parsed = JSON.parse(content);
     if (!parsed.title || !parsed.content) return err("Invalid AI response", 500);
+
+    if (completion.usage) {
+      await logTokenUsage(coachId, "knowledge.generate", completion.usage, 3);
+    }
 
     const entry = await prisma.knowledgeEntry.create({
       data: {

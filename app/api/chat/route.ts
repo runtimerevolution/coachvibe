@@ -3,6 +3,7 @@ import OpenAI from "openai";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/session";
 import { deductCredits } from "@/lib/credits";
+import { logTokenUsage } from "@/lib/tokens";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,9 @@ export async function POST(req: NextRequest) {
     const coachId = requireAuth(req);
     if (coachId) {
       await deductCredits(coachId, 1, "chat.message");
+      if (completion.usage) {
+        await logTokenUsage(coachId, "chat.message", completion.usage, 1);
+      }
 
       const userMessage = messages[messages.length - 1];
       if (userMessage) {

@@ -91,7 +91,25 @@ function CreditsBar({ used, total, onBuyCredits }: { used: number; total: number
 
 function BuyCreditsModal({ onClose }: { onClose: () => void }) {
   const [selected, setSelected] = useState<string | null>(null);
-  const packs = [{ id: "100", amount: 100, price: 10, perCredit: "0.10", popular: false }, { id: "300", amount: 300, price: 24, perCredit: "0.08", popular: true }, { id: "600", amount: 600, price: 42, perCredit: "0.07", popular: false }];
+  const [loading, setLoading] = useState(false);
+  const packs = [{ id: "100", amount: 100, price: 10, popular: false }, { id: "300", amount: 300, price: 24, popular: true }, { id: "600", amount: 600, price: 42, popular: false }];
+
+  const handleBuy = async () => {
+    if (!selected || loading) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ packId: selected }),
+      });
+      const { data } = await res.json();
+      if (data?.url) window.location.href = data.url;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }} onClick={onClose}>
       <div style={{ background: C.white, borderRadius: 20, padding: "32px", maxWidth: 520, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }} onClick={e => e.stopPropagation()}>
@@ -99,7 +117,7 @@ function BuyCreditsModal({ onClose }: { onClose: () => void }) {
           <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.darkGrey }}>Buy more credits</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: C.grey }}>×</button>
         </div>
-        <p style={{ fontSize: 14, color: C.grey, margin: "0 0 24px", lineHeight: 1.5 }}>Credits are used when workflows run. Pro includes 500 credits/month.</p>
+        <p style={{ fontSize: 14, color: C.grey, margin: "0 0 24px", lineHeight: 1.5 }}>Credits power every AI feature — chat, generation, and workflows.</p>
         <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
           {packs.map(pack => (
             <div key={pack.id} onClick={() => setSelected(pack.id)} style={{ flex: 1, padding: "20px 16px", borderRadius: 16, cursor: "pointer", border: selected === pack.id ? `2px solid ${C.purple}` : "1px solid #F0EDF5", background: selected === pack.id ? C.purple + "06" : C.white, textAlign: "center", position: "relative" }}>
@@ -110,8 +128,8 @@ function BuyCreditsModal({ onClose }: { onClose: () => void }) {
             </div>
           ))}
         </div>
-        <button style={{ width: "100%", padding: "14px", borderRadius: 24, border: "none", background: selected ? C.purple : "#E0E0E0", color: selected ? C.white : C.grey, fontWeight: 700, fontSize: 15, cursor: selected ? "pointer" : "default", fontFamily: "'Red Hat Display', sans-serif" }}>
-          {selected ? `Buy ${packs.find(p => p.id === selected)?.amount} credits for $${packs.find(p => p.id === selected)?.price}` : "Select a pack"}
+        <button onClick={handleBuy} disabled={!selected || loading} style={{ width: "100%", padding: "14px", borderRadius: 24, border: "none", background: selected ? C.purple : "#E0E0E0", color: selected ? C.white : C.grey, fontWeight: 700, fontSize: 15, cursor: selected && !loading ? "pointer" : "default", fontFamily: "'Red Hat Display', sans-serif" }}>
+          {loading ? "Redirecting to checkout…" : selected ? `Buy ${packs.find(p => p.id === selected)?.amount} credits for $${packs.find(p => p.id === selected)?.price}` : "Select a pack"}
         </button>
       </div>
     </div>
@@ -215,6 +233,9 @@ export default function CoachOS() {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [addingTask, setAddingTask] = useState(false);
 
+  // Token usage state
+  const [tokenStats, setTokenStats] = useState<{ totalTokens: number; totalCredits: number; byAction: Record<string, { tokens: number; credits: number; calls: number }> } | null>(null);
+
   // Second brain state
   const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
   const [entriesLoaded, setEntriesLoaded] = useState(false);
@@ -240,6 +261,11 @@ export default function CoachOS() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+
+    fetch("/api/billing/usage")
+      .then(r => r.json())
+      .then(({ data }) => { if (data) setTokenStats(data); })
+      .catch(() => {});
   }, []);
 
   // Lazy-load concierge tasks
@@ -555,6 +581,31 @@ export default function CoachOS() {
                   ))}
                 </div>
                 <CreditsBar used={creditsUsed} total={creditsTotal} onBuyCredits={() => setShowBuyCredits(true)} />
+
+                {/* Token usage */}
+                {tokenStats && tokenStats.totalTokens > 0 && (
+                  <div style={{ background: C.white, borderRadius: 16, padding: "20px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid #F0EDF5", marginTop: 16 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.darkGrey, marginBottom: 12 }}>AI usage — last 30 days</div>
+                    <div style={{ display: "flex", gap: 24, marginBottom: 14 }}>
+                      <div>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: C.purple, fontFamily: "'Red Hat Display', sans-serif" }}>{tokenStats.totalTokens.toLocaleString()}</div>
+                        <div style={{ fontSize: 12, color: C.grey }}>tokens used</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: C.darkGrey, fontFamily: "'Red Hat Display', sans-serif" }}>{tokenStats.totalCredits}</div>
+                        <div style={{ fontSize: 12, color: C.grey }}>credits spent</div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {Object.entries(tokenStats.byAction).map(([action, s]) => (
+                        <div key={action} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.grey }}>
+                          <span>{action.replace(".", " → ")}</span>
+                          <span style={{ fontWeight: 600, color: C.darkGrey }}>{s.tokens.toLocaleString()} tokens · {s.credits} cr · {s.calls} call{s.calls !== 1 ? "s" : ""}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
