@@ -71,8 +71,12 @@ model Integration {
   coach        Coach    @relation(fields: [coachId], references: [id], onDelete: Cascade)
   service      String
   connected    Boolean  @default(false)
-  accessToken  String?
-  refreshToken String?
+  accessToken  String? // legacy/unused — Nango stores OAuth credentials
+  refreshToken String? // legacy/unused — Nango stores OAuth credentials
+  // Nango-managed connection. We persist only the connection id + provider key;
+  // Nango holds (and refreshes) the actual OAuth tokens.
+  nangoConnectionId      String?
+  nangoProviderConfigKey String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
