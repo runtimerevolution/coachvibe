@@ -89,12 +89,6 @@ The connect/callback/disconnect/run routes are generic over the registry — no 
 
 ## Known issues / notes
 
-- **Migration drift (fixed here):** the committed migrations did not reproduce
-  `schema.prisma` — `Coach.googleId`, `TokenUsage`, and `CreditsTransaction` had no
-  migration, so a fresh `prisma migrate deploy` + seed used to fail. The
-  `20260602090000_reconcile_schema_drift` migration adds them idempotently (guarded with
-  `IF NOT EXISTS`, so it is safe on databases that already gained them via `db push`).
-  Fresh setup now works with `migrate deploy` — no `db push` needed.
 - **`next lint` is not configured** in the repo (prompts to set up ESLint). Type safety is
   covered by `tsc --noEmit` and the test suite.
 - **Webhook backstop (optional):** connections are persisted via the frontend callback.
