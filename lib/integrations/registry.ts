@@ -7,10 +7,12 @@ import type { IntegrationDef } from "./types";
  *   1. Configure the provider integration (+ OAuth scopes) in the Nango dashboard.
  *   2. Add a `lib/integrations/<service>.ts` module with typed action functions.
  *   3. Add one entry below keyed by the internal service id.
- *   4. (UI) the Connectors grid auto-detects real services via `isNangoService`.
  *
  * The connect/callback/disconnect API routes and the workflow runner are generic
- * over this registry — no new routes are needed per integration.
+ * over this registry — no new routes are needed per integration. The Connectors
+ * UI also routes the real connect flow off `isNangoService`, so a registry entry
+ * is all that's required there (plus a `connectorsList` card if the connector is
+ * brand new and needs display metadata — icon, colour, description).
  */
 export const INTEGRATIONS: Record<string, IntegrationDef> = {
   gmail: {

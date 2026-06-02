@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { workflowTemplates } from "@/lib/workflow-templates";
 import { timeAgo } from "@/lib/time";
+import { isNangoService } from "@/lib/integrations/registry";
 import Nango from "@nangohq/frontend";
 
 const C = {
@@ -301,9 +302,8 @@ export default function CoachOS() {
 
   const toggleConnector = async (id: string) => {
     const isConnected = connectedApps.includes(id);
-    // Real integrations connect through Nango's hosted Connect UI; the other
-    // placeholder connectors keep the simple boolean toggle.
-    const NANGO_SERVICES = new Set(["gmail", "google-calendar"]);
+    // Real integrations (in the registry) connect through Nango's hosted Connect
+    // UI; the other placeholder connectors keep the simple boolean toggle.
 
     // Disconnect — same endpoint for real + placeholder (real ones revoke at Nango).
     if (isConnected) {
@@ -321,7 +321,7 @@ export default function CoachOS() {
     }
 
     // Connect a placeholder service — legacy boolean toggle.
-    if (!NANGO_SERVICES.has(id)) {
+    if (!isNangoService(id)) {
       setConnectedApps(p => [...p, id]);
       try {
         await fetch("/api/integration/toggle", {

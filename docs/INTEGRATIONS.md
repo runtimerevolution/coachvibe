@@ -73,8 +73,10 @@ Proxy** (`nango.get/post`), which injects and refreshes the OAuth token.
 
 1. Configure the provider integration (+ scopes + OAuth app) in the Nango dashboard.
 2. Add `lib/integrations/<service>.ts` with action functions `(conn, …) => conn.nango.get/post(...)`.
-3. Add one entry to `INTEGRATIONS` in `lib/integrations/registry.ts`.
-4. Add the id to `NANGO_SERVICES` in `components/coachos/CoachOS.tsx` (+ a `connectorsList` card if new).
+3. Add one entry to `INTEGRATIONS` in `lib/integrations/registry.ts`. The Connectors UI
+   picks up the real connect flow from this automatically (via `isNangoService`).
+4. If the connector is brand new, add a `connectorsList` card in `components/coachos/CoachOS.tsx`
+   for its display metadata (icon, colour, description).
 5. To run it in a workflow: add a `REAL_STEPS` entry + any new `ACTIONS` in `lib/workflows/runner.ts`.
 
 The connect/callback/disconnect/run routes are generic over the registry — no new routes.
@@ -95,4 +97,9 @@ The connect/callback/disconnect/run routes are generic over the registry — no 
   Adding `app/api/integration/webhook` (verify with `nango.verifyIncomingWebhookRequest`)
   makes it robust if a user closes the tab mid-OAuth.
 - **Connection ownership check** in the callback is best-effort; harden before production.
+- **Charge/run atomicity:** `/api/workflow/run` deducts the credit, then writes the
+  `WorkflowRun`. These are two separate writes, so the "a charge always has a recorded
+  run" guarantee breaks in the rare case where the `WorkflowRun` insert fails after the
+  deduction succeeds. Acceptable for the demo (same DB, back-to-back writes); the
+  production fix is a transaction or a refund-on-failure path.
 - **Free plan:** 10 connections (~5 coaches × 2 services) — ample for a demo.
