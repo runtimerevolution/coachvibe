@@ -16,12 +16,12 @@ CoachOS needs PostgreSQL. The Prisma CLI auto-loads `.env` (not `.env.local`), s
 `DATABASE_URL` goes in `.env`.
 
 ```bash
-# Postgres via Docker (host port 5433 used here to avoid clashing with 5432)
+# Postgres via Docker
 docker run --name coachos-postgres \
   -e POSTGRES_USER=coachos -e POSTGRES_PASSWORD=coachos -e POSTGRES_DB=coachos \
-  -p 5433:5432 -d postgres:16
+  -p 5432:5432 -d postgres:16
 
-# .env  -> DATABASE_URL="postgresql://coachos:coachos@localhost:5433/coachos"
+# .env  -> DATABASE_URL="postgresql://coachos:coachos@localhost:5432/coachos"
 # .env.local -> NANGO_SECRET_KEY, NANGO_HOST (see .env.local.example)
 
 npm install
