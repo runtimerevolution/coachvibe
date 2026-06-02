@@ -25,8 +25,8 @@ docker run --name coachos-postgres \
 # .env.local -> NANGO_SECRET_KEY, NANGO_HOST (see .env.local.example)
 
 npm install
-npx prisma db push      # see "Known issues" re: migrate vs db push
-npx prisma db seed      # demo@demo.com / demo
+npx prisma migrate deploy   # applies all migrations (drift reconciled — see notes)
+npx prisma db seed          # demo@demo.com / demo
 npm run dev
 ```
 
@@ -89,10 +89,12 @@ The connect/callback/disconnect/run routes are generic over the registry — no 
 
 ## Known issues / notes
 
-- **Migration drift (pre-existing):** the committed migrations don't reproduce
-  `schema.prisma` (`Coach.googleId` has no migration), so a fresh `prisma migrate deploy`
-  + seed fails. Use `npx prisma db push` locally. The team should reconcile migration
-  history separately. This branch adds a surgical `add_nango_connection_fields` migration.
+- **Migration drift (fixed here):** the committed migrations did not reproduce
+  `schema.prisma` — `Coach.googleId`, `TokenUsage`, and `CreditsTransaction` had no
+  migration, so a fresh `prisma migrate deploy` + seed used to fail. The
+  `20260602090000_reconcile_schema_drift` migration adds them idempotently (guarded with
+  `IF NOT EXISTS`, so it is safe on databases that already gained them via `db push`).
+  Fresh setup now works with `migrate deploy` — no `db push` needed.
 - **`next lint` is not configured** in the repo (prompts to set up ESLint). Type safety is
   covered by `tsc --noEmit` and the test suite.
 - **Webhook backstop (optional):** connections are persisted via the frontend callback.
