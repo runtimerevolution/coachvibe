@@ -15,6 +15,7 @@ CoachOS is an AI-powered business management platform for coaches. It gives coac
 | Database | PostgreSQL via Prisma 5 ORM |
 | AI | OpenAI GPT-4o (`openai` SDK) |
 | TTS | ElevenLabs (REST calls) |
+| Integrations | Nango — managed OAuth + API proxy (real Gmail & Google Calendar) |
 | Auth | Custom cookie-based — session cookie stores `coachId` |
 | Testing | Vitest 4 — unit + API route tests, node environment |
 
@@ -46,6 +47,9 @@ lib/
   time.ts                 # timeAgo() relative time helper
   api-response.ts         # ok(), err(), unauthorized() response helpers
   workflow-templates.ts   # Hardcoded workflow template definitions (never in DB)
+  workflows/runner.ts     # Real workflow execution — REAL_STEPS, ACTIONS, assertConnections()
+  nango.ts                # Server-side Nango client (lazy init; never throws at import)
+  integrations/           # Registry (source of truth) + per-service actions: gmail, google-calendar
   landing-page/           # Prompt builders and color extractor
 prisma/
   schema.prisma
@@ -128,7 +132,16 @@ npx prisma db seed   # seed demo user (demo@demo.com / demo)
 - Defined in `lib/workflow-templates.ts` — 8 pre-built templates
 - Templates are never stored in the DB (they're product-defined constants)
 - `WorkflowInstance` in DB links a coach to a `templateId` string and tracks `active` state
-- `WorkflowRun` records simulated executions with fake output JSON
+- `WorkflowRun` records executions — `/api/workflow/simulate` writes fake output; `/api/workflow/run` writes real output for templates that have `REAL_STEPS` in `lib/workflows/runner.ts` (currently `pre-session-brief`)
+
+## Integrations
+
+- Real integrations run through **Nango** (managed OAuth, token storage/refresh, and an API proxy). The secret key (`NANGO_SECRET_KEY`) is server-side only; the browser uses `@nangohq/frontend` with a short-lived connect session token.
+- `lib/integrations/registry.ts` is the **single source of truth** for which services are real — `isNangoService(id)`. Both the API routes and the Connectors UI key off it; never hardcode the real-service list.
+- Add an integration: (1) configure the provider in Nango, (2) add `lib/integrations/<service>.ts` with action functions, (3) add one entry to the registry. The connect/callback/disconnect/run routes are generic over the registry — no new routes needed.
+- Gmail is **draft-only** — it creates drafts via the Gmail API and never sends.
+- The connect/callback/toggle routes live under `app/api/integration/`; connections are verified (`assertConnections`) **before** credits are charged in `/api/workflow/run`.
+- Connectors other than Gmail and Google Calendar are still fake DB toggles (see "What Is Intentionally Not Implemented"). Full setup: `docs/INTEGRATIONS.md`.
 
 ## Notifications + Activity Log
 
@@ -147,8 +160,8 @@ The seed creates a fully populated coach with workflows, integrations, concierge
 
 ## What Is Intentionally Not Implemented
 
-- Real OAuth flows for Gmail, Stripe, HubSpot, Zoom, LinkedIn, etc. — integrations are a fake toggle in DB only
-- Real workflow execution against external APIs — runs are simulated with fake output
+- Real OAuth for connectors **other than** Gmail and Google Calendar (Stripe, HubSpot, Zoom, LinkedIn, etc.) — those remain fake DB toggles. Gmail and Google Calendar are real (Nango OAuth) — see the **Integrations** section.
+- Real execution for most workflows — only templates with `REAL_STEPS` (currently `pre-session-brief`) run for real via `/api/workflow/run`; `/api/workflow/simulate` still returns fake output and other templates have no real steps yet.
 - Payment/credits purchase flow
 - Push notifications (browser/mobile)
 - Admin or analytics pages

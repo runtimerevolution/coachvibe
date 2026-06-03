@@ -10,34 +10,17 @@ actions module" — no new API routes.
 
 ---
 
-## 1. Run locally
-
-CoachOS needs PostgreSQL. The Prisma CLI auto-loads `.env` (not `.env.local`), so
-`DATABASE_URL` goes in `.env`.
-
-```bash
-# Postgres via Docker
-docker run --name coachos-postgres \
-  -e POSTGRES_USER=coachos -e POSTGRES_PASSWORD=coachos -e POSTGRES_DB=coachos \
-  -p 5432:5432 -d postgres:16
-
-# .env  -> DATABASE_URL="postgresql://coachos:coachos@localhost:5432/coachos"
-# .env.local -> NANGO_SECRET_KEY, NANGO_HOST (see .env.local.example)
-
-npm install
-npx prisma migrate deploy   # applies all migrations (drift reconciled — see notes)
-npx prisma db seed          # demo@demo.com / demo
-npm run dev
-```
-
-## 2. One-time Nango + Google setup
+## 1. One-time Nango + Google setup
 
 **Nango (free Cloud plan):**
+
 1. Sign up at nango.dev, open the **DEV** environment.
 2. Create two integrations: provider **`google-mail`** and **`google-calendar`**.
-3. Copy the **Environment Secret Key** → `NANGO_SECRET_KEY` in `.env.local`.
+3. Copy the **Environment Secret Key** → `NANGO_SECRET_KEY` in `.env.local` (and
+   `NANGO_HOST` if you self-host Nango — see `.env.local.example`).
 
 **Google Cloud Console:**
+
 1. New project → enable **Gmail API** + **Google Calendar API**.
 2. OAuth consent screen → External, **Testing**; add your Google account under **Test users**.
 3. Scopes: `gmail.compose` and `calendar.events.readonly`.
@@ -48,28 +31,28 @@ npm run dev
 > users while the app is in Testing — fine for development. Production with these
 > scopes requires Google's annual security assessment.
 
-## 3. How it works
+## 2. How it works
 
-| File | Role |
-|------|------|
-| `lib/nango.ts` | Lazy server Nango client (`getNango()`); never throws at import. |
-| `lib/integrations/registry.ts` | **Source of truth.** service id → `{ nangoProviderConfigKey, displayName, scopes }`. |
-| `lib/integrations/types.ts` | `IntegrationConnection`, `IntegrationDef`. |
-| `lib/integrations/gmail.ts` | `createDraft(conn, {subject, body, to?})`. |
-| `lib/integrations/google-calendar.ts` | `getNextEvent(conn)`. |
-| `lib/integrations/connection.ts` | `getConnection(coachId, service)` — the "is it really connected?" gate. |
-| `app/api/integration/[service]/connect` | Creates a Nango connect session (generic). |
-| `app/api/integration/[service]/callback` | Persists the returned `connectionId` (generic). |
-| `app/api/integration/toggle` | Disconnect (revokes at Nango) + legacy boolean toggle for placeholder connectors. |
-| `lib/workflows/runner.ts` | `REAL_STEPS` per template + `ACTIONS` dispatch + `runWorkflow` / `assertConnections`. |
-| `app/api/workflow/run` | Manual real run: guard → charge → run → record (mirrors `simulate`). |
+| File                                     | Role                                                                                  |
+| ---------------------------------------- | ------------------------------------------------------------------------------------- |
+| `lib/nango.ts`                           | Lazy server Nango client (`getNango()`); never throws at import.                      |
+| `lib/integrations/registry.ts`           | **Source of truth.** service id → `{ nangoProviderConfigKey, displayName, scopes }`.  |
+| `lib/integrations/types.ts`              | `IntegrationConnection`, `IntegrationDef`.                                            |
+| `lib/integrations/gmail.ts`              | `createDraft(conn, {subject, body, to?})`.                                            |
+| `lib/integrations/google-calendar.ts`    | `getNextEvent(conn)`.                                                                 |
+| `lib/integrations/connection.ts`         | `getConnection(coachId, service)` — the "is it really connected?" gate.               |
+| `app/api/integration/[service]/connect`  | Creates a Nango connect session (generic).                                            |
+| `app/api/integration/[service]/callback` | Persists the returned `connectionId` (generic).                                       |
+| `app/api/integration/toggle`             | Disconnect (revokes at Nango) + legacy boolean toggle for placeholder connectors.     |
+| `lib/workflows/runner.ts`                | `REAL_STEPS` per template + `ACTIONS` dispatch + `runWorkflow` / `assertConnections`. |
+| `app/api/workflow/run`                   | Manual real run: guard → charge → run → record (mirrors `simulate`).                  |
 
 **Connect flow:** Connect button → `POST /connect` (session token) → Nango Connect UI →
 on success the browser posts the `connectionId` to `/callback` → stored on the
 `Integration` row (`nangoConnectionId`). Provider API calls go through the **Nango
 Proxy** (`nango.get/post`), which injects and refreshes the OAuth token.
 
-## 4. Add another integration
+## 3. Add another integration
 
 1. Configure the provider integration (+ scopes + OAuth app) in the Nango dashboard.
 2. Add `lib/integrations/<service>.ts` with action functions `(conn, …) => conn.nango.get/post(...)`.
@@ -81,7 +64,7 @@ Proxy** (`nango.get/post`), which injects and refreshes the OAuth token.
 
 The connect/callback/disconnect/run routes are generic over the registry — no new routes.
 
-## 5. Verify
+## 4. Verify
 
 - Connectors tab → **Connect** Gmail and Google Calendar (real OAuth via Nango).
 - Workflows tab → activate **Pre-session brief** → **Run now (real)** → a draft appears
