@@ -61,7 +61,7 @@ prisma/
 - Session is stored in an `httpOnly` cookie named `coachvibe_session`
 - Cookie value is the `coachId` (Prisma cuid) — not the email
 - `lib/auth.ts` → `getCoachIdFromCookie()` reads the cookie in Server Components and Actions
-- `lib/session.ts` → `requireAuth(req)` reads the cookie in API Route Handlers; returns `coachId` string or throws a 401 `NextResponse`
+- `lib/session.ts` → `requireAuth(req)` reads the cookie in API Route Handlers; returns the `coachId` string, or `null` if there's no valid session — the route then returns `unauthorized()`
 - Every API route calls `requireAuth(req)` at the top — never `prisma.coach.findFirst()`
 - Passwords are hashed with `bcryptjs` (not `bcrypt` — pure JS, no native bindings)
 
@@ -81,7 +81,8 @@ import { requireAuth } from "@/lib/session"
 import { ok, err, unauthorized } from "@/lib/api-response"
 
 export async function GET(req: NextRequest) {
-  const coachId = await requireAuth(req)   // throws 401 if unauthenticated
+  const coachId = requireAuth(req)         // synchronous; returns string | null
+  if (!coachId) return unauthorized()
   // ...
   return ok({ ... })
 }
