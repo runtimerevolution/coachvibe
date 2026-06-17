@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { workflowTemplates } from "@/lib/workflow-templates";
 import { timeAgo } from "@/lib/time";
+import { isNangoService } from "@/lib/integrations/registry";
+import Nango from "@nangohq/frontend";
 
 const C = {
   purple: "#6626e9", orange: "#FFAD0D", teal: "#41D5E2", pink: "#E55CFF",
@@ -214,6 +216,8 @@ export default function CoachOS() {
   const [connectedApps, setConnectedApps] = useState<string[]>([]);
   const [activeWorkflows, setActiveWorkflows] = useState<string[]>([]);
   const [viewingWorkflow, setViewingWorkflow] = useState<string | null>(null);
+  const [runningWorkflow, setRunningWorkflow] = useState<string | null>(null);
+  const [runFeedback, setRunFeedback] = useState<Record<string, { ok: boolean; msg: string }>>({});
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   type CustomStep = { label: string; type: "trigger" | "action" | "wait" | "condition" | "notify" };
   type CustomWorkflow = { id: string; customName: string; customDescription: string | null; active: boolean; customSteps: CustomStep[] };
@@ -298,16 +302,65 @@ export default function CoachOS() {
 
   const toggleConnector = async (id: string) => {
     const isConnected = connectedApps.includes(id);
-    const newConnected = !isConnected;
-    setConnectedApps(p => newConnected ? [...p, id] : p.filter(x => x !== id));
+    // Real integrations (in the registry) connect through Nango's hosted Connect
+    // UI; the other placeholder connectors keep the simple boolean toggle.
+
+    // Disconnect — same endpoint for real + placeholder (real ones revoke at Nango).
+    if (isConnected) {
+      setConnectedApps(p => p.filter(x => x !== id));
+      try {
+        await fetch("/api/integration/toggle", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ service: id, connected: false }),
+        });
+      } catch {
+        setConnectedApps(p => (p.includes(id) ? p : [...p, id]));
+      }
+      return;
+    }
+
+    // Connect a placeholder service — legacy boolean toggle.
+    if (!isNangoService(id)) {
+      setConnectedApps(p => [...p, id]);
+      try {
+        await fetch("/api/integration/toggle", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ service: id, connected: true }),
+        });
+      } catch {
+        setConnectedApps(p => p.filter(x => x !== id));
+      }
+      return;
+    }
+
+    // Connect a real (Nango) service: get a session token, open the Connect UI,
+    // then persist the connection id the modal returns on success.
     try {
-      await fetch("/api/integration/toggle", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ service: id, connected: newConnected }),
+      const res = await fetch(`/api/integration/${id}/connect`, { method: "POST" });
+      const { data, error } = await res.json();
+      if (!data?.sessionToken) {
+        alert(error || "Could not start the connection. Is Nango configured?");
+        return;
+      }
+      const nango = new Nango();
+      const connect = nango.openConnectUI({
+        onEvent: (event) => {
+          if (event.type === "connect") {
+            fetch(`/api/integration/${id}/callback`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ connectionId: event.payload.connectionId }),
+            })
+              .then(() => setConnectedApps(p => (p.includes(id) ? p : [...p, id])))
+              .catch(() => {});
+          }
+        },
       });
+      connect.setSessionToken(data.sessionToken);
     } catch {
-      setConnectedApps(p => isConnected ? [...p, id] : p.filter(x => x !== id));
+      // leave the UI unchanged on failure
     }
   };
 
@@ -323,6 +376,36 @@ export default function CoachOS() {
       });
     } catch {
       setActiveWorkflows(p => isActive ? [...p, id] : p.filter(x => x !== id));
+    }
+  };
+
+  // Manually trigger a REAL workflow run (calls live integrations via Nango).
+  const runWorkflow = async (id: string) => {
+    setRunningWorkflow(id);
+    setRunFeedback(p => ({ ...p, [id]: { ok: true, msg: "" } }));
+    try {
+      const res = await fetch("/api/workflow/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateId: id }),
+      });
+      const json = await res.json();
+      if (!json.success) {
+        setRunFeedback(p => ({ ...p, [id]: { ok: false, msg: json.error || "Run failed" } }));
+      } else {
+        const run = json.data?.run ?? {};
+        const o = (run.output ?? {}) as { gmailDraftId?: string; eventSummary?: string };
+        const msg = o.gmailDraftId
+          ? `Draft created for "${o.eventSummary ?? "your next event"}" — check Gmail ✉️`
+          : run.status === "failed"
+            ? "Ran with errors — check the activity log."
+            : "Workflow ran.";
+        setRunFeedback(p => ({ ...p, [id]: { ok: run.status !== "failed", msg } }));
+      }
+    } catch {
+      setRunFeedback(p => ({ ...p, [id]: { ok: false, msg: "Run failed — try again." } }));
+    } finally {
+      setRunningWorkflow(null);
     }
   };
 
@@ -854,6 +937,18 @@ export default function CoachOS() {
                     <button onClick={() => setViewingWorkflow(w.id)} style={{ marginTop: "auto", padding: "10px", borderRadius: 24, border: `1px solid ${w.color}30`, background: w.color + "08", color: w.color, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "'Quicksand', sans-serif" }}>
                       View workflow steps →
                     </button>
+                    {w.id === "pre-session-brief" && active && (
+                      <button
+                        onClick={() => runWorkflow(w.id)}
+                        disabled={runningWorkflow === w.id}
+                        style={{ padding: "10px", borderRadius: 24, border: "none", background: w.color, color: C.white, fontWeight: 700, fontSize: 13, cursor: runningWorkflow === w.id ? "wait" : "pointer", fontFamily: "'Quicksand', sans-serif" }}
+                      >
+                        {runningWorkflow === w.id ? "Running…" : "▶ Run now (real)"}
+                      </button>
+                    )}
+                    {w.id === "pre-session-brief" && runFeedback[w.id]?.msg && (
+                      <div style={{ fontSize: 12, color: runFeedback[w.id].ok ? "#2E7D32" : "#E65100", lineHeight: 1.4 }}>{runFeedback[w.id].msg}</div>
+                    )}
                   </div>
                 );
               })}

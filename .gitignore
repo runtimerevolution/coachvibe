@@ -7,6 +7,9 @@ node_modules/
 .next/
 out/
 
+# TypeScript
+*.tsbuildinfo
+
 # Env — nunca commitar secrets
 .env
 .env.local

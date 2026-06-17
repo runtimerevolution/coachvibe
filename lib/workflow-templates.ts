@@ -62,7 +62,10 @@ export const workflowTemplates: WorkflowTemplate[] = [
     icon: "📋",
     color: "#FFAD0D",
     desc: "Before each session, generates brief with last session summary, action items, focus areas",
-    connectors: ["google-calendar", "hubspot", "fathom"],
+    // Real, runnable workflow: reads your next Google Calendar event and drafts a
+    // prep email in Gmail. (Other steps below are illustrative and are skipped by
+    // the runner.) These two are the connectors the run actually requires.
+    connectors: ["google-calendar", "gmail"],
     timeSaved: "45 min",
     creditCost: 3,
     steps: [

@@ -45,9 +45,11 @@ async function main() {
   // Integrations
   await prisma.integration.createMany({
     data: [
-      { coachId: coach.id, service: "gmail", connected: true },
+      // Gmail + Google Calendar are real Nango integrations — they must be connected
+      // through the OAuth flow in the app (which sets nangoConnectionId), so seed them off.
+      { coachId: coach.id, service: "gmail", connected: false },
       { coachId: coach.id, service: "stripe", connected: true },
-      { coachId: coach.id, service: "google-calendar", connected: true },
+      { coachId: coach.id, service: "google-calendar", connected: false },
       { coachId: coach.id, service: "hubspot", connected: false },
       { coachId: coach.id, service: "zoom", connected: false },
     ],
