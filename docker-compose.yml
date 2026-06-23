@@ -1,0 +1,30 @@
+# Local development database for CoachOS.
+# Brings up the PostgreSQL instance that Prisma connects to via DATABASE_URL.
+#
+#   docker compose up -d        # start Postgres in the background
+#   docker compose down         # stop (keeps data)
+#   docker compose down -v      # stop AND wipe data (start from scratch)
+#
+# Matches the default local DATABASE_URL:
+#   postgresql://coachos:coachos@localhost:5432/coachos
+services:
+  postgres:
+    image: postgres:16
+    container_name: coachos-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: coachos
+      POSTGRES_PASSWORD: coachos
+      POSTGRES_DB: coachos
+    ports:
+      - "5432:5432"
+    volumes:
+      - coachos-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coachos -d coachos"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  coachos-pgdata:

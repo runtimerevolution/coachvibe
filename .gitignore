@@ -30,3 +30,6 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# Coachvox research clones (not part of CoachOS — for integration analysis only)
+coachvox-research/
